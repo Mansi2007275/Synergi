@@ -24,8 +24,12 @@ import {
   getDefaultSBTCContract,
   getExplorerURL,
   formatPaymentAmount,
+  wrapAxiosWithPayment,
+  privateKeyToAccount,
+  decodePaymentResponse,
 } from 'x402-stacks';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import axios from 'axios';
 
 // ---------------------------------------------------------------------------
 // Configuration
@@ -40,6 +44,16 @@ const SERVER_ADDRESS =
   process.env.SERVER_ADDRESS || 'ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM';
 const FACILITATOR_URL = process.env.X402_FACILITATOR_URL || 'http://localhost:3002';
 const EXPLORER_BASE = 'https://explorer.hiro.so';
+const AGENT_PRIVATE_KEY = process.env.AGENT_PRIVATE_KEY;
+
+if (!AGENT_PRIVATE_KEY) {
+  console.warn('[WARN] AGENT_PRIVATE_KEY not set. Agent will use simulated payments.');
+}
+
+const agentAccount = AGENT_PRIVATE_KEY ? privateKeyToAccount(AGENT_PRIVATE_KEY, NETWORK) : null;
+const agentClient = agentAccount
+  ? wrapAxiosWithPayment(axios.create({ baseURL: `http://localhost:${PORT}` }), agentAccount)
+  : null;
 
 // ---------------------------------------------------------------------------
 // Express App
@@ -550,30 +564,69 @@ async function runAgent(query: string, token: string): Promise<AgentExecutionRes
     totalCost.STX += price.stxAmount;
     totalCost.sBTC_sats += price.sbtcSats;
 
-    const payment = {
-      transaction: `tx_${toolId}_${Math.random().toString(16).slice(2, 10)}`,
-      token: token || 'SIMULATED_AGENT_TOKEN',
-      amount: `${price.stxAmount} STX`,
-      explorerUrl: `${EXPLORER_BASE}/txid/0x${Math.random().toString(16).repeat(8).slice(0, 64)}?chain=testnet`,
-    };
-
-    paymentLogs.push({
-      timestamp: new Date().toISOString(),
-      endpoint: `/api/${toolId === 'mathSolve' ? 'math-solve' : toolId}`,
-      payer: 'Agent',
-      transaction: payment.transaction,
-      token: payment.token as 'STX' | 'sBTC',
-      amount: payment.amount,
-      explorerUrl: payment.explorerUrl,
-    });
-
+    let payment;
     let toolResult;
-    if (toolId === 'weather') {
-      toolResult = `The current weather in ${tc.params.location || 'requested location'} is 22°C with clear skies.`;
-    } else if (toolId === 'summarize') {
-      toolResult = `Summary: Micropayments enable a new economy where AI agents can autonomously trade value for specialized data services. (Referenced: ${tc.params.text?.slice(0, 20)}...)`;
-    } else if (toolId === 'mathSolve') {
-      toolResult = `Result: The calculation for "${tc.params.expression}" evaluated to 42.`;
+
+    if (agentClient) {
+      try {
+        const endpoint = `/api/${toolId === 'mathSolve' ? 'math-solve' : toolId}`;
+        const res = await agentClient.post(`${endpoint}?token=${token}`, tc.params);
+
+        const paymentInfo = decodePaymentResponse(
+          (res.headers as Record<string, string>)['payment-response'] || ''
+        );
+
+        if (paymentInfo) {
+          payment = {
+            transaction: paymentInfo.transaction,
+            token,
+            amount: `${price.stxAmount} STX`,
+            explorerUrl: getExplorerURL(paymentInfo.transaction, NETWORK),
+          };
+
+          paymentLogs.push({
+            timestamp: new Date().toISOString(),
+            endpoint,
+            payer: 'Agent',
+            transaction: payment.transaction,
+            token: payment.token as 'STX' | 'sBTC',
+            amount: payment.amount,
+            explorerUrl: payment.explorerUrl,
+          });
+        }
+
+        toolResult = res.data.result || res.data.weather || res.data.summary || JSON.stringify(res.data);
+      } catch (err: any) {
+        console.error(`[AGENT EXEC] Tool ${toolId} failed:`, err.message);
+        results.push({ tool: toolId, result: null, error: err.message });
+        continue;
+      }
+    } else {
+      // Fallback to simulation if NO private key
+      payment = {
+        transaction: `sim_tx_${toolId}_${Math.random().toString(16).slice(2, 10)}`,
+        token: token || 'SIMULATED_AGENT_TOKEN',
+        amount: `${price.stxAmount} STX`,
+        explorerUrl: `${EXPLORER_BASE}/txid/0x${Math.random().toString(16).repeat(8).slice(0, 64)}?chain=testnet`,
+      };
+
+      paymentLogs.push({
+        timestamp: new Date().toISOString(),
+        endpoint: `/api/${toolId === 'mathSolve' ? 'math-solve' : toolId}`,
+        payer: 'Agent (Sim)',
+        transaction: payment.transaction,
+        token: payment.token as 'STX' | 'sBTC',
+        amount: payment.amount,
+        explorerUrl: payment.explorerUrl,
+      });
+
+      if (toolId === 'weather') {
+        toolResult = `The current weather in ${tc.params.location || 'requested location'} is 22°C with clear skies.`;
+      } else if (toolId === 'summarize') {
+        toolResult = `Summary: Micropayments enable a new economy where AI agents can autonomously trade value for specialized data services. (Referenced: ${tc.params.text?.slice(0, 20)}...)`;
+      } else if (toolId === 'mathSolve') {
+        toolResult = `Result: The calculation for "${tc.params.expression}" evaluated to 42.`;
+      }
     }
 
     results.push({
