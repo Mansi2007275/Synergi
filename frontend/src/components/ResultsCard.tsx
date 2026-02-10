@@ -1,9 +1,10 @@
 'use client';
 
+import React from 'react';
+
 interface ToolCallResult {
   tool: string;
-  success: boolean;
-  data: Record<string, unknown> | null;
+  result: any;
   payment?: {
     transaction: string;
     token: string;
@@ -13,18 +14,15 @@ interface ToolCallResult {
   error?: string;
 }
 
-interface AgentPlan {
-  query: string;
-  toolCalls: { toolId: string; params: Record<string, unknown> }[];
-  reasoning: string;
-}
-
 interface AgentResult {
   query: string;
-  plan: AgentPlan;
+  plan: string[];
   results: ToolCallResult[];
   finalAnswer: string;
-  totalCost: number;
+  totalCost: {
+    STX: number;
+    sBTC_sats: number;
+  };
 }
 
 interface ResultsCardProps {
@@ -33,34 +31,43 @@ interface ResultsCardProps {
 
 export default function ResultsCard({ result }: ResultsCardProps) {
   return (
-    <div className="card results-card">
+    <div className="card results-card" style={{ marginTop: '1rem' }}>
       <div className="card-header">
         <h3 className="card-title">
-          <span className="icon">&#10003;</span> Result
+          <span className="icon">&#10003;</span> Result & Insights
         </h3>
-        <span className="cost-badge">
-          {result.totalCost} STX
-        </span>
+        <div className="cost-summary">
+          <span className="cost-badge" data-tooltip="Total STX spent on this query.">
+            {result.totalCost.STX} STX
+          </span>
+          <span className="cost-badge" data-tooltip="Total sBTC spent (in satoshis).">
+            {result.totalCost.sBTC_sats} sats
+          </span>
+        </div>
       </div>
 
       <div className="result-answer">{result.finalAnswer}</div>
 
       <div className="result-plan">
-        <strong>Plan: </strong>
-        {result.plan.reasoning}
+        <strong>Execution Path:</strong>
+        <ul style={{ marginTop: '0.5rem', paddingLeft: '1.2rem' }}>
+          {result.plan.map((step, i) => (
+            <li key={i} style={{ color: 'var(--text-dim)', fontSize: '0.85rem', marginBottom: '4px' }}>
+              {step}
+            </li>
+          ))}
+        </ul>
       </div>
 
       <div className="result-tools">
         {result.results.map((r, i) => (
           <div key={i} className="result-tool-item">
-            <div>
+            <div style={{ flex: 1 }}>
               <div className="result-tool-name">
-                {r.success ? '✓' : '✗'} {r.tool}
+                {r.error ? '✗' : '✓'} {r.tool}
               </div>
               <div className="result-tool-data">
-                {r.success
-                  ? JSON.stringify(r.data, null, 0).slice(0, 120)
-                  : r.error}
+                {r.error ? r.error : String(r.result)}
               </div>
             </div>
             {r.payment && (

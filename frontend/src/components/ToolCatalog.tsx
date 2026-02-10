@@ -59,7 +59,16 @@ export default function ToolCatalog({ apiBase }: ToolCatalogProps) {
                 </h4>
                 <p>{tool.description}</p>
               </div>
-              <div className="tool-price">{tool.price.STX} STX</div>
+                <div className="tool-pricing">
+                  <div className="price-item" data-tooltip="Stacks (STX) is the native asset used for gas and settlement.">
+                    <span className="price-val">{tool.price.STX}</span>
+                    <span className="price-unit">STX</span>
+                  </div>
+                  <div className="price-item" data-tooltip="sBTC is a 1:1 Bitcoin-backed asset on Stacks.">
+                    <span className="price-val">{tool.price.sBTC_sats}</span>
+                    <span className="price-unit">sBTC sats</span>
+                  </div>
+                </div>
             </div>
           ))}
         </div>

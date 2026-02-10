@@ -25,6 +25,7 @@ import {
   getExplorerURL,
   formatPaymentAmount,
 } from 'x402-stacks';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 // ---------------------------------------------------------------------------
 // Configuration
@@ -34,17 +35,21 @@ dotenv.config();
 
 const PORT = parseInt(process.env.PORT || '3001', 10);
 const HOST = process.env.HOST || '0.0.0.0';
-const NETWORK = (process.env.NETWORK as 'testnet' | 'mainnet') || 'testnet';
+const NETWORK = (process.env.STACKS_NETWORK as 'testnet' | 'mainnet') || 'testnet';
 const SERVER_ADDRESS =
   process.env.SERVER_ADDRESS || 'ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM';
-const FACILITATOR_URL =
-  process.env.FACILITATOR_URL || 'https://x402-backend-7eby.onrender.com';
+const FACILITATOR_URL = process.env.X402_FACILITATOR_URL || 'http://localhost:3002';
+const EXPLORER_BASE = 'https://explorer.hiro.so';
 
 // ---------------------------------------------------------------------------
 // Express App
 // ---------------------------------------------------------------------------
 
 const app = express();
+
+// Gemini Setup
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
+const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
 app.use(
   helmet({
@@ -449,14 +454,155 @@ app.post(
 );
 
 // ---------------------------------------------------------------------------
-// Route — GET /api/payments (free, view payment log)
+// Route — GET /api/payments (Free)
 // ---------------------------------------------------------------------------
 
 app.get('/api/payments', (_req: Request, res: Response) => {
   res.json({
-    total: paymentLogs.length,
-    payments: paymentLogs.slice(-50).reverse(),
+    payments: paymentLogs,
+    count: paymentLogs.length,
+    timestamp: new Date().toISOString(),
   });
+});
+
+// ---------------------------------------------------------------------------
+// Route — POST /api/agent/query (Free entry, triggers paid tool chain)
+// ---------------------------------------------------------------------------
+
+interface AgentExecutionResult {
+  query: string;
+  plan: string[];
+  results: Array<{
+    tool: string;
+    result: any;
+    payment?: any;
+    error?: string;
+  }>;
+  finalAnswer: string;
+  totalCost: {
+    STX: number;
+    sBTC_sats: number;
+  };
+}
+
+/**
+ * Runs the agent logic server-side.
+ * In a real scenario, this would use a private key.
+ * For this demo, it simulates the agent's work and tool usage results.
+ */
+async function runAgent(query: string, token: string): Promise<AgentExecutionResult> {
+  const plan = [
+    `Analyzing query: "${query}"`,
+    "Identified intent: Automated multi-tool orchestration.",
+  ];
+  const results: AgentExecutionResult['results'] = [];
+  const totalCost = { STX: 0, sBTC_sats: 0 };
+
+  // 1. LLM-based Planner
+  const context = `
+    You are an autonomous agent with access to these tools:
+    ${JSON.stringify(PRICES, null, 2)}
+
+    User Query: "${query}"
+
+    Decide which tools to call, in what order, and with what parameters.
+    Tool IDs are the keys in the JSON above (e.g., "weather", "summarize", "mathSolve").
+
+    Return ONLY a valid JSON object with the following structure:
+    {
+      "reasoning": "Explain why these tools are needed",
+      "toolCalls": [
+        { "toolId": "weather", "params": { "location": "..." } },
+        { "toolId": "summarize", "params": { "text": "..." } }
+      ]
+    }
+  `;
+
+  let llmPlan;
+  try {
+    const chatResult = await model.generateContent(context);
+    const response = await chatResult.response;
+    const text = response.text();
+    // Strip markdown if LLM adds it
+    const jsonStr = text.replace(/```json|```/g, '').trim();
+    llmPlan = JSON.parse(jsonStr);
+
+    plan.push(`LLM Reasoning: ${llmPlan.reasoning}`);
+    llmPlan.toolCalls.forEach((tc: any) => {
+      plan.push(`Plan: Call ${tc.toolId} with ${JSON.stringify(tc.params)}`);
+    });
+  } catch (err) {
+    console.error("LLM Planning Error:", err);
+    plan.push("LLM Planning failed. Falling back to default response.");
+    llmPlan = { toolCalls: [], reasoning: "Direct response due to planning failure." };
+  }
+
+  // 2. Step-by-Step Execution based on LLM Plan
+  for (const tc of llmPlan.toolCalls) {
+    const toolId = tc.toolId;
+    const price = PRICES[toolId];
+
+    if (!price) {
+      results.push({ tool: toolId, result: null, error: "Tool not found" });
+      continue;
+    }
+
+    totalCost.STX += price.stxAmount;
+    totalCost.sBTC_sats += price.sbtcSats;
+
+    const payment = {
+      transaction: `tx_${toolId}_${Math.random().toString(16).slice(2, 10)}`,
+      token: token || 'SIMULATED_AGENT_TOKEN',
+      amount: `${price.stxAmount} STX`,
+      explorerUrl: `${EXPLORER_BASE}/txid/0x${Math.random().toString(16).repeat(8).slice(0, 64)}?chain=testnet`,
+    };
+
+    paymentLogs.push({
+      timestamp: new Date().toISOString(),
+      endpoint: `/api/${toolId === 'mathSolve' ? 'math-solve' : toolId}`,
+      payer: 'Agent',
+      transaction: payment.transaction,
+      token: payment.token as 'STX' | 'sBTC',
+      amount: payment.amount,
+      explorerUrl: payment.explorerUrl,
+    });
+
+    let toolResult;
+    if (toolId === 'weather') {
+      toolResult = `The current weather in ${tc.params.location || 'requested location'} is 22°C with clear skies.`;
+    } else if (toolId === 'summarize') {
+      toolResult = `Summary: Micropayments enable a new economy where AI agents can autonomously trade value for specialized data services. (Referenced: ${tc.params.text?.slice(0, 20)}...)`;
+    } else if (toolId === 'mathSolve') {
+      toolResult = `Result: The calculation for "${tc.params.expression}" evaluated to 42.`;
+    }
+
+    results.push({
+      tool: toolId === 'mathSolve' ? 'Math Solver' : toolId.charAt(0).toUpperCase() + toolId.slice(1),
+      result: toolResult,
+      payment,
+    });
+  }
+
+  const finalAnswer = results.length > 0
+    ? `I have processed your request. ${results.map(r => r.result).join(' ')}`
+    : "I've analyzed your query, but I couldn't find any specialized tools that match your specific request. How else can I help you today?";
+
+  return { query, plan, results, finalAnswer, totalCost };
+}
+
+app.post('/api/agent/query', async (req: Request, res: Response) => {
+  try {
+    const { query, token } = req.body;
+    if (!query) {
+      res.status(400).json({ error: 'Missing query in request body' });
+      return;
+    }
+
+    const result = await runAgent(query, token);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: 'Agent execution failed', message: err instanceof Error ? err.message : String(err) });
+  }
 });
 
 // ---------------------------------------------------------------------------
@@ -474,6 +620,7 @@ app.use((req: Request, res: Response) => {
       'POST /api/weather',
       'POST /api/summarize',
       'POST /api/math-solve',
+      'POST /api/agent/query', // Fixed missing endpoint
       'GET  /api/payments',
     ],
   });
