@@ -199,7 +199,7 @@ Traditional APIs use API keys and monthly subscriptions. x402 enables:
 
 - **Pay-per-call pricing** — pay exactly for what you use
 - **No API keys** — your wallet IS your identity
-- **Machine-to-machine** — agents pay agents, no humans needed
+- **Machine-to-Machine (M2M) Economy** — This project demonstrates a true autonomous economy where AI agents negotiate, pay, and settle transactions with other agents and services without any human intervention. By removing manual payment friction, we unlock a scalable ecosystem of specialized micro-services.
 - **Bitcoin-secured** — settled on Stacks, anchored to Bitcoin
 - **Instant** — no invoices, no billing cycles, no disputes
 

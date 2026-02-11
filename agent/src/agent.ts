@@ -4,7 +4,7 @@
  * An AI agent that:
  * 1. Discovers available paid tools from the backend
  * 2. Accepts a user query
- * 3. Plans which tools to call (rule-based or LLM)
+ * 3. Plans which tools to call using an LLM (Groq supported)
  * 4. Automatically pays for each tool via x402 (STX/sBTC)
  * 5. Aggregates results into a final answer
  *
@@ -21,6 +21,8 @@ import {
   getExplorerURL,
 } from 'x402-stacks';
 import * as readline from 'readline';
+import Groq from 'groq-sdk';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 dotenv.config({ path: '../.env' });
 dotenv.config();
@@ -32,6 +34,8 @@ dotenv.config();
 const PRIVATE_KEY = process.env.AGENT_PRIVATE_KEY;
 const SERVER_URL = process.env.AGENT_SERVER_URL || 'http://localhost:3001';
 const NETWORK = (process.env.NETWORK as 'testnet' | 'mainnet') || 'testnet';
+const GROQ_API_KEY = process.env.GROQ_API_KEY;
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
 if (!PRIVATE_KEY) {
   console.error(
@@ -45,6 +49,17 @@ const api: AxiosInstance = wrapAxiosWithPayment(
   axios.create({ baseURL: SERVER_URL }),
   account
 );
+
+// Initialize AI clients
+let groqClient: Groq | null = null;
+let geminiClient: GoogleGenerativeAI | null = null;
+
+if (GROQ_API_KEY) {
+  groqClient = new Groq({ apiKey: GROQ_API_KEY });
+}
+if (GEMINI_API_KEY) {
+  geminiClient = new GoogleGenerativeAI(GEMINI_API_KEY);
+}
 
 // ---------------------------------------------------------------------------
 // Types
@@ -102,57 +117,118 @@ async function discoverTools(): Promise<Tool[]> {
 }
 
 // ---------------------------------------------------------------------------
-// Planner — Rule-based (swap with LLM for smarter planning)
+// Planner — LLM-based
 // ---------------------------------------------------------------------------
 
-function planToolCalls(query: string): AgentPlan {
+async function planToolCalls(query: string, tools: Tool[]): Promise<AgentPlan> {
+  const toolsDescription = tools
+    .map(
+      (t) =>
+        `- ID: "${t.id}"\n  Description: ${t.description}\n  Params: ${JSON.stringify(t.params)}`
+    )
+    .join('\n\n');
+
+  const systemPrompt = `
+You are an autonomous AI agent capable of using paid tools to answer user queries.
+You have a budget and should only call tools if necessary.
+
+Available Tools:
+${toolsDescription}
+
+Instructions:
+1. Analyze the user's query.
+2. Decide which tools (if any) are needed to answer it.
+3. If multiple tools are needed, list them in logical order (e.g., get weather -> summarize).
+4. Extract necessary parameters for each tool call from the query.
+5. Provide a short reasoning for your plan.
+
+Output Format:
+Return a valid JSON object with this exact structure:
+{
+  "reasoning": "Explanation of why you selected these tools (or none).",
+  "toolCalls": [
+    {
+      "toolId": "tool_id_from_list",
+      "params": { "param_name": "value" }
+    }
+  ]
+}
+
+If no tools are needed (e.g., general knowledge or greeting), return empty toolCalls.
+Do NOT output markdown code blocks. Just the raw JSON.
+`;
+
+  console.log('[AGENT] Planning with LLM...');
+
+  try {
+    // Try Groq first
+    if (groqClient) {
+      const completion = await groqClient.chat.completions.create({
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: query },
+        ],
+        model: 'llama-3.3-70b-versatile',
+        temperature: 0,
+        response_format: { type: 'json_object' },
+      });
+
+      const content = completion.choices[0]?.message?.content;
+      if (content) {
+        return JSON.parse(content) as AgentPlan;
+      }
+    }
+
+    // Fallback to Gemini
+    if (geminiClient) {
+      const model = geminiClient.getGenerativeModel({ model: 'gemini-pro' });
+      const result = await model.generateContent(
+        systemPrompt + '\n\nUser Query: ' + query
+      );
+      const text = result.response.text();
+      // Gemini might wrap in markdown blocks, strip them
+      const jsonStr = text.replace(/```json\n?|\n?```/g, '').trim();
+      return JSON.parse(jsonStr) as AgentPlan;
+    }
+
+    throw new Error('No LLM client available (GROQ_API_KEY or GEMINI_API_KEY missing)');
+  } catch (err) {
+    console.error('[AGENT] Planning failed, falling back to rule-based:', err);
+    return fallbackRuleBasedPlan(query, tools);
+  }
+}
+
+function fallbackRuleBasedPlan(query: string, tools: Tool[]): AgentPlan {
   const q = query.toLowerCase();
-  const plan: AgentPlan = { query, toolCalls: [], reasoning: '' };
+  const plan: AgentPlan = { query, toolCalls: [], reasoning: 'Fallback rule-based plan.' };
 
-  // Weather detection
-  const weatherMatch = q.match(
-    /weather\s+(?:in|for|at)\s+([a-z\s]+?)(?:\?|$|,|\s+and\s+)/
-  );
-  if (q.includes('weather') || weatherMatch) {
-    const city = weatherMatch?.[1]?.trim() || 'new york';
+  // Simple keyword matching as fallback
+  if (q.includes('weather')) {
+    const cityBase = q.split('weather')[1]?.trim() || 'New York';
+    // quick cleanup
+    const city = cityBase.split(' ')[0] || 'New York';
     plan.toolCalls.push({ toolId: 'weather', params: { city } });
-    plan.reasoning += `Detected weather query for "${city}". `;
   }
 
-  // Summarize detection
-  if (
-    q.includes('summarize') ||
-    q.includes('summary') ||
-    q.includes('tldr') ||
-    q.includes('shorten')
-  ) {
-    const textMatch = query.match(/(?:summarize|summary of|tldr|shorten)\s*:?\s*(.+)/i);
-    const text = textMatch?.[1]?.trim() || query;
-    plan.toolCalls.push({ toolId: 'summarize', params: { text, maxLength: 100 } });
-    plan.reasoning += 'Detected summarization request. ';
+  if (q.includes('summarize')) {
+     plan.toolCalls.push({ toolId: 'summarize', params: { text: query, maxLength: 50 } });
   }
 
-  // Math detection
-  const mathPatterns = /(\d+\s*[+\-*/^%]\s*\d+|calculate|compute|solve|math|equation)/;
-  if (mathPatterns.test(q)) {
-    const exprMatch = query.match(
-      /(?:calculate|compute|solve|what is|evaluate)?\s*:?\s*([\d\s+\-*/().^%]+)/i
-    );
-    const expression = exprMatch?.[1]?.trim() || query;
-    plan.toolCalls.push({ toolId: 'math-solve', params: { expression } });
-    plan.reasoning += `Detected math expression: "${expression}". `;
+  // Sentiment
+  if (q.includes('sentiment') || q.includes('feeling')) {
+    plan.toolCalls.push({ toolId: 'sentiment', params: { text: query } });
   }
 
-  // Multi-tool: if query mentions multiple things
-  if (plan.toolCalls.length === 0) {
-    plan.reasoning =
-      'No matching tools found. Try asking about weather, summarization, or math.';
-  } else if (plan.toolCalls.length > 1) {
-    plan.reasoning += `Multi-tool chain: calling ${plan.toolCalls.length} tools sequentially.`;
+  // Code explainer
+  if (q.includes('explain code') || q.includes('what does this code')) {
+    // extract code block loosely
+    const code = query.replace(/explain code/i, '').trim();
+    plan.toolCalls.push({ toolId: 'code-explain', params: { code } });
   }
 
   return plan;
 }
+
 
 // ---------------------------------------------------------------------------
 // Tool Executor
@@ -234,10 +310,10 @@ async function processQuery(
   console.log('----------------------------------------------------------------');
 
   // 1. Plan
-  const plan = planToolCalls(query);
+  const plan = await planToolCalls(query, availableTools);
   console.log(`[AGENT] Plan: ${plan.reasoning}`);
   console.log(
-    `[AGENT] Tools to call: ${plan.toolCalls.map((c) => c.toolId).join(' → ') || 'none'}`
+    `[AGENT] Tools to call: ${plan.toolCalls.length > 0 ? plan.toolCalls.map((c) => c.toolId).join(' → ') : 'none'}`
   );
 
   if (plan.toolCalls.length === 0) {
@@ -245,7 +321,7 @@ async function processQuery(
       query,
       plan,
       results: [],
-      finalAnswer: plan.reasoning,
+      finalAnswer: plan.reasoning || 'No tools needed to answer this query.',
       totalCost: 0,
     };
   }
@@ -281,26 +357,19 @@ function aggregateResults(query: string, results: ToolCallResult[]): string {
     return 'All tool calls failed. Please check connectivity and wallet balance.';
   }
 
+  // Simple aggregation for now
+  // Ideally, this would be another LLM call to synthesize the answer
   const parts: string[] = [];
 
   for (const result of successful) {
-    if (result.data?.weather) {
-      const w = result.data.weather;
-      parts.push(
-        `Weather in ${result.data.city}: ${w.temp} C, ${w.condition}, humidity ${w.humidity}%, wind ${w.wind}`
-      );
-    }
-    if (result.data?.summary) {
-      parts.push(`Summary: ${result.data.summary}`);
-    }
-    if (result.data?.result !== undefined) {
-      parts.push(
-        `Math result: ${result.data.expression} = ${result.data.result}`
-      );
+    if (result.data) {
+        // Try to find a meaningful string representation
+        const content = result.data.answer || result.data.summary || result.data.result || JSON.stringify(result.data);
+        parts.push(`${result.tool}: ${JSON.stringify(content)}`);
     }
   }
 
-  return parts.join(' | ') || 'Tools executed successfully.';
+  return parts.join('\n\n') || 'Tools executed successfully.';
 }
 
 // ---------------------------------------------------------------------------
@@ -342,7 +411,7 @@ async function startRepl() {
         return;
       }
 
-      if (trimmed === 'exit' || trimmed === 'quit') {
+      if (['exit', 'quit'].includes(trimmed)) {
         console.log('[AGENT] Shutting down.');
         rl.close();
         process.exit(0);
