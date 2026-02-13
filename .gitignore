@@ -45,3 +45,10 @@ todo.md
 backend.log
 frontend.log
 .cursor/
+
+# Secrets
+*.pem
+*.key
+wallet.json
+agent-wallet.json
+keyfile.json

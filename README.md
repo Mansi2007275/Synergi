@@ -1,72 +1,70 @@
-# x402 Autonomous Agent — Stacks Micropayments
+# SYNERGI — x402 Autonomous Agent Economy
 
-> **Machine-to-machine micropayments on Bitcoin, powered by the x402 protocol and Stacks.**
+> **The first decentralized labor marketplace where AI agents autonomously hire, negotiate, and pay each other using the x402 protocol on Stacks/Bitcoin.**
 
-An autonomous AI agent that **discovers**, **plans**, **pays for**, and **aggregates** results from paid API endpoints — all without human intervention. Every API call triggers an automatic STX or sBTC micropayment settled on the Stacks blockchain.
+---
+
+## What is SYNERGI?
+
+SYNERGI is a **systemic Agent-to-Agent (A2A) economy** — not a toy demo. A Manager Agent receives natural-language queries, plans multi-step tasks via LLM, **autonomously evaluates worker agents** on reputation and cost-efficiency, and settles every payment on-chain through the **x402 HTTP 402** payment protocol on Stacks.
+
+### Key Differentiators
+
+| Feature                        | Description                                                                                                       |
+| ------------------------------ | ----------------------------------------------------------------------------------------------------------------- |
+| **Recursive A2A Hiring**       | Agents hire sub-agents mid-task (Research → Summarizer + Sentiment). Payments cascade with depth tracking.        |
+| **Reputation Layer**           | On-chain Clarity contract tracks reputation (0–10,000 basis), dynamic pricing, job history, and category leaders. |
+| **Autonomous Cost Evaluation** | Value Score = reputation² / (price × 10,000). Manager compares alternatives before every hire.                    |
+| **Protocol Transparency**      | Every x402 handshake captured — raw 402 headers, payment payloads, signed data — visible in the dashboard.        |
+| **Dual Token Settlement**      | Pay in STX or sBTC (sats). Token preference cascades through the entire A2A chain.                                |
+| **Live Economy Visualization** | Canvas-rendered topology graph showing User → Manager → Workers with animated payment flows.                      |
 
 ---
 
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────────┐
-│                   USER / FRONTEND                   │
-│              (query → agent → answer)               │
-└──────────────────────┬──────────────────────────────┘
-                       │
-            ┌──────────▼──────────┐
-            │   AUTONOMOUS AGENT  │
-            │                     │
-            │  1. Discover tools  │
-            │  2. Plan calls      │
-            │  3. Auto-pay (x402) │
-            │  4. Aggregate       │
-            └──────────┬──────────┘
-                       │  HTTP 402 → pay → retry
-            ┌──────────▼──────────┐
-            │   BACKEND SERVER    │
-            │                     │
-            │  /api/weather       │  0.001 STX
-            │  /api/summarize     │  0.002 STX
-            │  /api/math-solve    │  0.001 STX
-            └──────────┬──────────┘
-                       │
-            ┌──────────▼──────────┐
-            │   x402 FACILITATOR  │
-            │  (testnet)          │
-            │  Settlement on      │
-            │  Stacks blockchain  │
-            └─────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│  FRONTEND (Next.js 16 + React 19)                           │
+│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌───────────────┐  │
+│  │AgentChat │ │EconomyGr.│ │ TxnLog   │ │ProtocolTrace  │  │
+│  └────┬─────┘ └──────────┘ └──────────┘ └───────────────┘  │
+│       │ POST /api/agent/query    SSE /api/agent/events      │
+├───────┼─────────────────────────────────────────────────────┤
+│  BACKEND (Express + x402-stacks)                             │
+│  ┌────▼────────────────────────────────────────────────┐    │
+│  │  Manager Agent (LLM Planning: Groq → Gemini)       │    │
+│  │  ┌─────────────────────────────────────────────┐    │    │
+│  │  │ autonomousHiringDecision(reputation, cost)  │    │    │
+│  │  └────────────────┬────────────────────────────┘    │    │
+│  │                   │ x402 Payment (HTTP 402 → 200)   │    │
+│  │  ┌────────┬───────┼───────┬────────┬───────────┐    │    │
+│  │  │Weather │Summary│ Math  │Sentim. │ Research  │    │    │
+│  │  │0.001STX│0.003  │0.005  │0.002   │ 0.01 STX │    │    │
+│  │  └────────┴───────┴───────┴────────┤           │    │    │
+│  │                                    │  ┌──────┐ │    │    │
+│  │                         A2A Hire → │  │Summ. │ │    │    │
+│  │                                    │  │Sent. │ │    │    │
+│  │                                    └──┴──────┘ │    │    │
+│  └─────────────────────────────────────────────────┘    │    │
+├─────────────────────────────────────────────────────────┤    │
+│  CLARITY SMART CONTRACT (Stacks Testnet)                │    │
+│  agent-registry.clar — Registration, Jobs, Reputation   │    │
+└─────────────────────────────────────────────────────────┘    │
 ```
 
-## How x402 Works
+### Worker Agents (x402-Gated)
 
-1. Agent calls a paid endpoint
-2. Server responds with **HTTP 402 Payment Required** + payment details
-3. `x402-stacks` client wrapper **automatically** signs a payment
-4. Payment is settled via the **facilitator** on the Stacks blockchain
-5. Server returns the API response with a `payment-response` header
-6. Agent extracts the transaction hash and links to the Stacks Explorer
-
-**Zero human intervention. Zero browser popups. Pure machine-to-machine payments.**
-
----
-
-## Project Structure
-
-```
-stacks-x402-challenge/
-├── backend/                 # Express server with x402-protected endpoints
-│   └── src/index.ts         # 3 paid APIs + free discovery/health endpoints
-├── agent/                   # Autonomous agent client
-│   └── src/
-│       ├── agent.ts         # Core agent: plan → pay → execute → aggregate
-│       ├── test-client.ts   # Manual endpoint test script
-│       └── generate-wallet.ts  # Testnet wallet generator
-├── .env.example             # Environment variable template
-├── package.json             # Monorepo root (npm workspaces)
-└── README.md
-```
+| Agent          | Endpoint               | Price     | Category    | Recursive?                               |
+| -------------- | ---------------------- | --------- | ----------- | ---------------------------------------- |
+| WeatherBot     | `/api/weather`         | 0.001 STX | utility     | No                                       |
+| Summarizer Pro | `/api/summarize`       | 0.003 STX | nlp         | No                                       |
+| MathSolver     | `/api/math-solve`      | 0.005 STX | computation | No                                       |
+| SentimentAI    | `/api/sentiment`       | 0.002 STX | nlp         | No                                       |
+| CodeExplainer  | `/api/code-explain`    | 0.004 STX | development | No                                       |
+| DeepResearch   | `/api/agent/research`  | 0.01 STX  | research    | **Yes** → hires Summarizer + Sentiment   |
+| CodingAgent    | `/api/agent/code`      | 0.02 STX  | development | **Yes** → hires CodeExplainer for review |
+| TranslateBot   | `/api/agent/translate` | 0.005 STX | nlp         | No                                       |
 
 ---
 
@@ -74,139 +72,104 @@ stacks-x402-challenge/
 
 ### Prerequisites
 
-- Node.js 18+
-- A Stacks testnet wallet with STX (get testnet STX from the [Stacks faucet](https://explorer.hiro.so/sandbox/faucet?chain=testnet))
+- **Node.js 18+**
+- **npm** (workspaces support)
+- Stacks testnet STX ([faucet](https://faucet.stacks.co))
 
-### 1. Clone & Install
+### 1. Install
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/stacks-x402-challenge.git
-cd stacks-x402-challenge
-npm install
+git clone <repo-url> && cd stacks-x402-challenge
+npm run install:all
 ```
 
-### 2. Configure Environment
+### 2. Configure
 
 ```bash
-cp .env.example .env
-# Edit .env with your values:
-#   SERVER_ADDRESS  — your Stacks testnet address (receives payments)
-#   AGENT_PRIVATE_KEY — agent wallet private key (sends payments)
+# Backend
+cp backend/.env.example backend/.env
+# Edit backend/.env with your keys:
+#   GROQ_API_KEY=gsk_...
+#   AGENT_PRIVATE_KEY=<hex-private-key>
+#   FACILITATOR_URL=https://x402-facilitator.onrender.com
 ```
 
-**Generate a fresh agent wallet:**
+### 3. Run
 
 ```bash
-npm run agent:wallet
+# Terminal 1: Backend (port 4002)
+cd backend && npm run dev
+
+# Terminal 2: Frontend (port 3000)
+cd frontend && npm run dev
+
+# Terminal 3 (optional): CLI Agent
+cd agent && npm start
 ```
 
-### 3. Start the Backend
+Visit **http://localhost:3000** → the SYNERGI dashboard.
 
-```bash
-npm run backend:dev
+---
+
+## Demo Flow
+
+1. **Chat**: Type _"Research quantum computing and summarize the findings"_
+2. **Watch**: Manager plans → hires Research Agent (0.01 STX) → Research recursively hires Summarizer (0.003 STX) + Sentiment (0.002 STX)
+3. **See**: Live topology graph pulses with payment flows, Transaction Log shows A2A depth, Protocol Trace reveals raw 402 headers
+4. **Verify**: Every payment links to the Stacks Explorer
+
+---
+
+## Project Structure
+
 ```
-
-Server starts on `http://localhost:3001` with 3 paid endpoints and free discovery.
-
-### 4. Run the Agent
-
-**Interactive REPL:**
-
-```bash
-npm run agent:start
-```
-
-**One-shot query:**
-
-```bash
-npx tsx agent/src/agent.ts "What is the weather in Tokyo?"
+├── contracts/
+│   └── agent-registry.clar    # On-chain reputation + job marketplace
+├── backend/
+│   └── src/index.ts           # Express server, x402 middleware, Manager Agent
+├── agent/
+│   └── src/agent.ts           # CLI agent with autonomous hiring logic
+├── frontend/
+│   └── src/
+│       ├── app/page.tsx       # Main dashboard
+│       └── components/
+│           ├── EconomyGraph.tsx    # Live canvas topology
+│           ├── AgentChat.tsx       # Chat + SSE execution steps
+│           ├── TransactionLog.tsx  # Payment log with A2A badges
+│           ├── ToolCatalog.tsx     # Agent marketplace cards
+│           ├── ProtocolTrace.tsx   # x402 header transparency
+│           ├── ExecutionSteps.tsx  # Step-by-step execution
+│           └── WalletInfo.tsx      # Wallet/network status
+└── package.json               # Monorepo root (npm workspaces)
 ```
 
 ---
 
-## Demo Scenarios
+## Smart Contract
 
-```bash
-# Single tool
-> What is the weather in San Francisco?
+The **agent-registry.clar** Clarity contract manages:
 
-# Math
-> Calculate 42 * 3 + 100 / 4 - 7
-
-# Summarize
-> Summarize: The x402 protocol enables machine-to-machine payments...
-
-# Multi-tool chain (auto-pays for each)
-> What is the weather in Tokyo and calculate 42 * 3
-```
-
-Each query triggers:
-
-- **Tool discovery** → reads `/api/tools`
-- **Planning** → matches tools via rule-based NLP
-- **Payment** → `x402-stacks` handles the 402 flow automatically
-- **Aggregation** → combines results into a single answer
-
----
-
-## Endpoints
-
-| Endpoint              | Method | Price     | Auth |
-| --------------------- | ------ | --------- | ---- |
-| `/api/weather`        | POST   | 0.001 STX | x402 |
-| `/api/summarize-text` | POST   | 0.002 STX | x402 |
-| `/api/math-solve`     | POST   | 0.001 STX | x402 |
-| `/api/tools`          | GET    | Free      | None |
-| `/api/payments`       | GET    | Free      | None |
-| `/health`             | GET    | Free      | None |
-
-**Token toggle:** Append `?token=sBTC` to pay with sBTC instead of STX.
-
----
-
-## x402-stacks SDK Integration
-
-This project uses the following SDK features:
-
-| Feature                       | Usage                                   |
-| ----------------------------- | --------------------------------------- |
-| `paymentMiddleware`           | Protects endpoints with 402 responses   |
-| `wrapAxiosWithPayment`        | Auto-pays 402 responses on the client   |
-| `privateKeyToAccount`         | Derives Stacks account from private key |
-| `decodePaymentResponse`       | Extracts tx hash from response headers  |
-| `STXtoMicroSTX` / `BTCtoSats` | Amount conversion utilities             |
-| `getDefaultSBTCContract`      | sBTC token contract resolution          |
-| `getExplorerURL`              | Stacks Explorer transaction links       |
-| `formatPaymentAmount`         | Human-readable amount formatting        |
-| `resolveToken`                | STX/sBTC token type resolution          |
+- Agent registration with categories and pricing
+- Job lifecycle (create → complete/fail) with STX escrow
+- Reputation scoring (basis points, +50/-100 per outcome)
+- Dynamic pricing based on reputation tier
+- Recursive hiring support with parent-job tracking
+- Category leadership and marketplace statistics
 
 ---
 
 ## Tech Stack
 
-- **Runtime:** Node.js 18+ / TypeScript
-- **Backend:** Express.js + x402-stacks middleware
-- **Agent:** Axios + x402-stacks client wrapper
-- **Blockchain:** Stacks testnet (Bitcoin L2)
-- **Protocol:** x402 HTTP Payment Protocol v2
-- **Facilitator:** Testnet facilitator for payment settlement
+| Layer            | Technology                                     |
+| ---------------- | ---------------------------------------------- |
+| Blockchain       | Stacks (Bitcoin L2), Clarity                   |
+| Payment Protocol | x402-stacks (HTTP 402 micropayments)           |
+| Backend          | Express.js, TypeScript, SSE                    |
+| LLM              | Groq (llama-3.3-70b) → Google Gemini 2.0 Flash |
+| Frontend         | Next.js 16, React 19, Canvas API               |
+| Agent            | TypeScript CLI, Axios + x402 wrapper           |
+| Tokens           | STX, sBTC (SIP-010)                            |
 
 ---
 
-## Why This Matters
-
-Traditional APIs use API keys and monthly subscriptions. x402 enables:
-
-- **Pay-per-call pricing** — pay exactly for what you use
-- **No API keys** — your wallet IS your identity
-- **Machine-to-Machine (M2M) Economy** — This project demonstrates a true autonomous economy where AI agents negotiate, pay, and settle transactions with other agents and services without any human intervention. By removing manual payment friction, we unlock a scalable ecosystem of specialized micro-services.
-- **Bitcoin-secured** — settled on Stacks, anchored to Bitcoin
-- **Instant** — no invoices, no billing cycles, no disputes
-
-This is the future of AI agent economics.
-
----
-
-## License
-
-MIT
+**Built for the x402 Stacks Hackathon 2026** · Autonomous. On-chain. Systemic.

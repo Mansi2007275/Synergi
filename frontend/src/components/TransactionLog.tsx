@@ -2,175 +2,147 @@
 
 import React, { useEffect, useState } from 'react';
 
-interface PaymentLog {
-  timestamp: string;
+const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+
+interface Payment {
+  id: string;
+  timestamp: number;
   endpoint: string;
-  transaction: string;
-  token: 'STX' | 'sBTC';
-  amount: string;
-  explorerUrl: string;
   payer: string;
+  worker: string;
+  transaction: string;
+  token: string;
+  amount: string;
+  explorerUrl?: string;
+  isA2A: boolean;
+  parentJobId?: string;
+  depth: number;
+  rawHeaders?: Record<string, string>;
 }
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+interface Props {
+  refreshTrigger: number;
+}
 
-export default function TransactionLog({ refreshTrigger }: { refreshTrigger?: number }) {
-  const [payments, setPayments] = useState<PaymentLog[]>([]);
-
-  const fetchPayments = () => {
-    fetch(`${API_BASE}/api/payments`)
-      .then(res => res.json())
-      .then(data => {
-        // Reverse to show newest first
-        const sorted = (data.payments || []).reverse();
-        setPayments(sorted);
-      })
-      .catch(err => console.error('Failed to load payment logs:', err));
-  };
+export default function TransactionLog({ refreshTrigger }: Props) {
+  const [payments, setPayments] = useState<Payment[]>([]);
+  const [a2aCount, setA2aCount] = useState(0);
 
   useEffect(() => {
+    const fetchPayments = async () => {
+      try {
+        const res = await fetch(`${API}/api/payments`);
+        const data = await res.json();
+        setPayments(data.payments || []);
+        setA2aCount(data.a2aCount || 0);
+      } catch {}
+    };
     fetchPayments();
-    // Poll every 5s just in case
-    const interval = setInterval(fetchPayments, 5000);
-    return () => clearInterval(interval);
   }, [refreshTrigger]);
 
-  return (
-    <div className="tx-log glass-panel">
-      <div className="tx-log__header">
-        <h3>Live Payments</h3>
-        <div className="live-badge">
-          <span className="pulsing-dot-green"></span>
-          LIVE
-        </div>
-      </div>
+  // Also poll
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(`${API}/api/payments`);
+        const data = await res.json();
+        setPayments(data.payments || []);
+        setA2aCount(data.a2aCount || 0);
+      } catch {}
+    }, 5000);
+    return () => clearInterval(interval);
+  }, []);
 
-      <div className="tx-list__container">
-        {payments.length === 0 ? (
-          <div className="tx-empty">
-            <p>No transactions yet.</p>
-            <p className="sub">Agent is waiting for instructions.</p>
-          </div>
-        ) : (
-          <div className="tx-list">
-            {payments.map((tx, i) => (
-              <div key={i} className="tx-item">
-                <div className="tx-item__row">
-                  <span className="tx-endpoint mono">{tx.endpoint.replace('/api/', '')}</span>
-                  <span className={`badge ${tx.token === 'sBTC' ? 'badge-sbtc' : 'badge-stx'}`}>
-                    {tx.amount}
-                  </span>
-                </div>
-                <div className="tx-item__row sub">
-                  <span className="tx-time">{new Date(tx.timestamp).toLocaleTimeString()}</span>
-                  <a href={tx.explorerUrl} target="_blank" rel="noreferrer" className="tx-link">
-                    View on Explorer ↗
-                  </a>
-                </div>
-              </div>
-            ))}
-          </div>
+  return (
+    <div className="glass-panel" style={{ height: '100%', padding: 14, display: 'flex', flexDirection: 'column' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-primary)' }}>TRANSACTIONS</span>
+          <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+            {payments.length} total
+          </span>
+        </div>
+        {a2aCount > 0 && (
+          <span className="badge badge-a2a" style={{ fontSize: '0.55rem' }}>{a2aCount} A2A</span>
         )}
       </div>
 
-      <style jsx>{`
-        .tx-log {
-          display: flex;
-          flex-direction: column;
-          height: 100%;
-          min-height: 400px;
-          overflow: hidden;
-        }
-        .tx-log__header {
-          padding: 16px;
-          border-bottom: 1px solid var(--border-subtle);
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-        }
-        .tx-log__header h3 {
-          font-size: 1rem;
-          color: var(--text-primary);
-        }
-        .live-badge {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          font-size: 0.7rem;
-          font-weight: 700;
-          color: var(--accent-success);
-          background: rgba(16, 185, 129, 0.1);
-          padding: 2px 6px;
-          border-radius: 4px;
-        }
-        .pulsing-dot-green {
-          width: 6px;
-          height: 6px;
-          background-color: var(--accent-success);
-          border-radius: 50%;
-          animation: pulse 2s infinite;
-        }
-        .tx-list__container {
-          flex: 1;
-          overflow-y: auto;
-          padding: 0 8px 8px 16px; /* Space for scrollbar */
-        }
-        .tx-list {
-          display: flex;
-          flex-direction: column;
-        }
-        .tx-item {
-          padding: 12px 0;
-          border-bottom: 1px solid var(--border-subtle);
-          animation: slideIn 0.3s ease-out;
-        }
-        .tx-item:last-child {
-          border-bottom: none;
-        }
-        .tx-item__row {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 4px;
-        }
-        .tx-item__row.sub {
-          margin-bottom: 0;
-        }
-        .tx-endpoint {
-          font-size: 0.85rem;
-          color: var(--accent-cyan);
-        }
-        .tx-time {
-          font-size: 0.75rem;
-          color: var(--text-muted);
-        }
-        .tx-link {
-          font-size: 0.75rem;
-          color: var(--text-secondary);
-          transition: color 0.2s;
-        }
-        .tx-link:hover {
-          color: var(--accent-primary);
-          text-decoration: underline;
-        }
-        .tx-empty {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          height: 100%;
-          text-align: center;
-          color: var(--text-muted);
-          padding: 32px;
-        }
-        .tx-empty p { font-size: 0.9rem; }
-        .tx-empty .sub { font-size: 0.8rem; opacity: 0.6; margin-top: 4px; }
+      <div style={{ flex: 1, overflowY: 'auto' }}>
+        {payments.length === 0 ? (
+          <div style={{ padding: 20, textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.7rem' }}>
+            No payments yet. Send a query to trigger x402 payments.
+          </div>
+        ) : (
+          payments.slice().reverse().map((p) => (
+            <PaymentCard key={p.id} payment={p} />
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
 
-        @keyframes slideIn {
-          from { opacity: 0; transform: translateX(-10px); }
-          to { opacity: 1; transform: translateX(0); }
-        }
-      `}</style>
+function PaymentCard({ payment }: { payment: Payment }) {
+  const shortAddr = (addr: string) =>
+    addr ? `${addr.slice(0, 6)}…${addr.slice(-4)}` : '???';
+  const timeAgo = (ts: number) => {
+    const diff = Date.now() - ts;
+    if (diff < 60000) return `${Math.floor(diff / 1000)}s ago`;
+    if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
+    return `${Math.floor(diff / 3600000)}h ago`;
+  };
+
+  return (
+    <div style={{
+      padding: '10px 12px', marginBottom: 6,
+      background: payment.isA2A ? 'rgba(245,158,11,0.04)' : 'rgba(255,255,255,0.02)',
+      borderRadius: 8, border: `1px solid ${payment.isA2A ? 'rgba(245,158,11,0.15)' : 'var(--border-subtle)'}`,
+      transition: 'all 0.2s',
+    }}>
+      {/* Row 1: endpoint + amount */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{
+            fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-primary)',
+            fontFamily: 'var(--font-mono)',
+          }}>
+            {payment.endpoint}
+          </span>
+          {payment.isA2A && <span className="badge badge-a2a" style={{ fontSize: '0.5rem' }}>A2A</span>}
+          {payment.depth > 0 && (
+            <span style={{ fontSize: '0.5rem', color: '#f59e0b', fontFamily: 'var(--font-mono)' }}>
+              depth:{payment.depth}
+            </span>
+          )}
+        </div>
+        <span className={`badge badge-${payment.token.toLowerCase() === 'sbtc' ? 'sbtc' : 'stx'}`} style={{ fontSize: '0.55rem' }}>
+          {payment.amount} {payment.token}
+        </span>
+      </div>
+
+      {/* Row 2: payer → worker */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.6rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+        <span>{shortAddr(payment.payer)}</span>
+        <span style={{ color: payment.isA2A ? '#f59e0b' : 'var(--accent-cyan)' }}>→</span>
+        <span>{shortAddr(payment.worker)}</span>
+        <span style={{ marginLeft: 'auto' }}>{timeAgo(payment.timestamp)}</span>
+      </div>
+
+      {/* Explorer link */}
+      {payment.explorerUrl && (
+        <a
+          href={payment.explorerUrl}
+          target="_blank"
+          rel="noreferrer"
+          style={{
+            display: 'inline-block', marginTop: 4,
+            fontSize: '0.55rem', color: 'var(--accent-cyan)', textDecoration: 'none',
+            fontFamily: 'var(--font-mono)',
+          }}
+        >
+          View on Explorer →
+        </a>
+      )}
     </div>
   );
 }
