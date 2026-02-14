@@ -52,3 +52,7 @@ frontend.log
 wallet.json
 agent-wallet.json
 keyfile.json
+.env
+.env.local
+node_modules
+.next
