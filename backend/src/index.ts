@@ -50,7 +50,7 @@ import {
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import Groq from 'groq-sdk';
 import axios from 'axios';
-import { EXTERNAL_AGENTS, callExternalAgent } from './universal-adapter';
+import { EXTERNAL_AGENTS, callExternalAgent } from './universal-adapter.js';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Configuration
@@ -71,8 +71,8 @@ if (!AGENT_PRIVATE_KEY) {
 }
 
 const agentAccount = AGENT_PRIVATE_KEY ? privateKeyToAccount(AGENT_PRIVATE_KEY, NETWORK) : null;
-const agentClient = agentAccount
-  ? wrapAxiosWithPayment(axios.create({ baseURL: `http://127.0.0.1:${PORT}` }), agentAccount)
+const agentClient = AGENT_PRIVATE_KEY
+  ? wrapAxiosWithPayment(axios.create({ baseURL: `http://127.0.0.1:${PORT}` }) as any, agentAccount as any)
   : null;
 
 // ═══════════════════════════════════════════════════════════════════════════
