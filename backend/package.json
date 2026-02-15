@@ -26,13 +26,13 @@
     "groq-sdk": "^0.37.0",
     "helmet": "^8.0.0",
     "morgan": "^1.10.0",
-    "x402-stacks": "latest"
-  },
-  "devDependencies": {
+    "x402-stacks": "latest",
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.0",
     "@types/morgan": "^1.9.9",
-    "@types/node": "^22.0.0",
+    "@types/node": "^22.0.0"
+  },
+  "devDependencies": {
     "tsx": "^4.19.0",
     "typescript": "^5.7.0"
   },
