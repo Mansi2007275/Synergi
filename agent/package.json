@@ -7,7 +7,9 @@
     "start": "tsx src/agent.ts",
     "dev": "tsx watch src/agent.ts",
     "test:client": "tsx src/test-client.ts",
-    "generate-wallet": "tsx src/generate-wallet.ts"
+    "generate-wallet": "tsx src/generate-wallet.ts",
+    "build": "tsc",
+    "start:prod": "node dist/agent.js"
   },
   "license": "MIT",
   "dependencies": {

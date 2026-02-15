@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: synergi_backend
+    ports:
+      - "4002:4002"
+    env_file:
+      - ./backend/.env
+    environment:
+      - PORT=4002
+      - HOST=0.0.0.0
+    restart: always
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        # For production/Azure, you might need to rebuild this image with the real backend URL
+        # docker-compose build --build-arg NEXT_PUBLIC_API_URL=https://your-backend.azurewebsites.net frontend
+        NEXT_PUBLIC_API_URL: http://localhost:4002
+    container_name: synergi_frontend
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    restart: always
+
+  agent:
+    build:
+      context: ./agent
+      dockerfile: Dockerfile
+    container_name: synergi_agent
+    env_file:
+      - ./agent/.env
+    environment:
+      - SERVER_URL=http://backend:4002
+    depends_on:
+      - backend
+    # Verify if interactive mode is needed. If so, run with: docker-compose run agent
+    # or keep it as a service if it has a loop.
+    restart: "no"

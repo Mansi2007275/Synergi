@@ -128,6 +128,8 @@ function TraceCard({ trace, index, showTechnical }: { trace: ProtocolTraceEntry;
           fontFamily: 'var(--font-mono)',
           background: `${statusColor}15`,
           padding: '1px 6px', borderRadius: 4,
+          boxShadow: trace.httpStatus === 402 ? '0 0 8px rgba(245, 158, 11, 0.4)' : 'none',
+          border: trace.httpStatus === 402 ? '1px solid rgba(245, 158, 11, 0.5)' : 'none',
         }}>
           {trace.httpStatus}
         </span>

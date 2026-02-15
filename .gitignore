@@ -57,3 +57,5 @@ keyfile.json
 node_modules
 .next
 
+# Environment
+azure-cli-env/
