@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { useI18n } from '@/lib/LanguageContext';
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
@@ -18,6 +19,15 @@ interface Payment {
   parentJobId?: string;
   depth: number;
   rawHeaders?: Record<string, string>;
+  metadata?: {
+    flashSwap?: {
+      provider: string;
+      pair: string;
+      amount: string;
+      fee: string;
+      reason: string;
+    }
+  };
 }
 
 interface Props {
@@ -25,6 +35,7 @@ interface Props {
 }
 
 export default function TransactionLog({ refreshTrigger }: Props) {
+  const { t } = useI18n();
   const [payments, setPayments] = useState<Payment[]>([]);
   const [a2aCount, setA2aCount] = useState(0);
 
@@ -57,20 +68,20 @@ export default function TransactionLog({ refreshTrigger }: Props) {
     <div className="glass-panel" style={{ height: '100%', padding: 14, display: 'flex', flexDirection: 'column' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-primary)' }}>TRANSACTIONS</span>
+          <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-primary)' }}>{t.transactions}</span>
           <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
-            {payments.length} total
+            {payments.length} {t.total}
           </span>
         </div>
         {a2aCount > 0 && (
-          <span className="badge badge-a2a" style={{ fontSize: '0.55rem' }}>{a2aCount} A2A</span>
+          <span className="badge badge-a2a" style={{ fontSize: '0.55rem' }}>{a2aCount} {t.a2a}</span>
         )}
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto' }}>
         {payments.length === 0 ? (
           <div style={{ padding: 20, textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.7rem' }}>
-            No payments yet. Send a query to trigger x402 payments.
+            {t.emptyTransactions}
           </div>
         ) : (
           payments.slice().reverse().map((p) => (
@@ -83,6 +94,7 @@ export default function TransactionLog({ refreshTrigger }: Props) {
 }
 
 function PaymentCard({ payment }: { payment: Payment }) {
+  const { t } = useI18n();
   const shortAddr = (addr: string) =>
     addr ? `${addr.slice(0, 6)}…${addr.slice(-4)}` : '???';
   const timeAgo = (ts: number) => {
@@ -95,7 +107,7 @@ function PaymentCard({ payment }: { payment: Payment }) {
   return (
     <div style={{
       padding: '10px 12px', marginBottom: 6,
-      background: payment.isA2A ? 'rgba(245,158,11,0.04)' : 'rgba(255,255,255,0.02)',
+      background: payment.isA2A ? 'rgba(245,158,11,0.06)' : '#fafbfc',
       borderRadius: 8, border: `1px solid ${payment.isA2A ? 'rgba(245,158,11,0.15)' : 'var(--border-subtle)'}`,
       transition: 'all 0.2s',
     }}>
@@ -108,10 +120,10 @@ function PaymentCard({ payment }: { payment: Payment }) {
           }}>
             {payment.endpoint}
           </span>
-          {payment.isA2A && <span className="badge badge-a2a" style={{ fontSize: '0.5rem' }}>A2A</span>}
+          {payment.isA2A && <span className="badge badge-a2a" style={{ fontSize: '0.5rem' }}>{t.a2a}</span>}
           {payment.depth > 0 && (
             <span style={{ fontSize: '0.5rem', color: '#f59e0b', fontFamily: 'var(--font-mono)' }}>
-              depth:{payment.depth}
+              {t.depth}:{payment.depth}
             </span>
           )}
         </div>
@@ -128,6 +140,29 @@ function PaymentCard({ payment }: { payment: Payment }) {
         <span style={{ marginLeft: 'auto' }}>{timeAgo(payment.timestamp)}</span>
       </div>
 
+      {/* Bitflow Flash Swap Metadata */}
+      {payment.metadata?.flashSwap && (
+        <div style={{
+          marginTop: 8,
+          padding: 8,
+          background: 'rgba(16,185,129,0.06)',
+          border: '1px dashed rgba(16,185,129,0.3)',
+          borderRadius: 6,
+          fontSize: '0.55rem'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', color: '#10b981', fontWeight: 700, marginBottom: 4 }}>
+            <span>⚡ {payment.metadata.flashSwap.provider} {t.flashSwap}</span>
+            <span>{payment.metadata.flashSwap.pair}</span>
+          </div>
+          <div style={{ color: 'var(--text-secondary)', marginBottom: 2 }}>
+            {t.swapAmount}: <span style={{ color: 'var(--text-primary)' }}>{payment.metadata.flashSwap.amount}</span>
+          </div>
+          <div style={{ color: 'var(--text-muted)' }}>
+            {t.reason}: {payment.metadata.flashSwap.reason}
+          </div>
+        </div>
+      )}
+
       {/* Explorer link */}
       {payment.explorerUrl && (
         <a
@@ -140,7 +175,7 @@ function PaymentCard({ payment }: { payment: Payment }) {
             fontFamily: 'var(--font-mono)',
           }}
         >
-          View on Explorer →
+          {t.viewExplorer}
         </a>
       )}
     </div>

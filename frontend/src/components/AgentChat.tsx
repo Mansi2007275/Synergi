@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, Terminal, Loader2, Shield, Zap, DollarSign, Activity } from 'lucide-react';
+import { Send, Terminal, Loader2, Shield, Zap, DollarSign, Activity, Share2 } from 'lucide-react';
+import { A2ATopology } from './A2ATopology';
+import { getAgentIcon, getAgentColor } from './AgentIcons';
+import { useI18n } from '@/lib/LanguageContext';
 
 interface Params {
   onNewPayments: (amount: number) => void;
@@ -11,6 +14,7 @@ interface Message {
   content: string;
   cost?: number;
   depth?: number;
+  subAgentHires?: any[];
 }
 
 const SimpleMarkdown = ({ text }: { text: string }) => {
@@ -42,7 +46,47 @@ const SimpleMarkdown = ({ text }: { text: string }) => {
   );
 };
 
+const SubAgentTree = ({ hires, depth = 0 }: { hires: any[], depth?: number }) => {
+  if (!hires || hires.length === 0) return null;
+
+  return (
+    <div style={{
+      marginTop: 12,
+      paddingLeft: depth === 0 ? 0 : 16,
+      borderLeft: depth === 0 ? 'none' : '1px solid var(--border-subtle)',
+    }}>
+      {hires.map((hire, idx) => {
+        const Icon = getAgentIcon(hire.agent);
+        const color = getAgentColor(hire.agent);
+
+        return (
+          <div key={idx} style={{ marginBottom: 8 }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              fontSize: '0.8rem',
+              color: 'var(--text-secondary)'
+            }}>
+              <div style={{ color: color }}>
+                <Icon size={14} />
+              </div>
+              <span className="mono">Hired <strong style={{ color: color }}>{hire.agent}</strong></span>
+              <span style={{ color: 'var(--text-muted)', fontSize: '0.7rem' }}>— {hire.cost} {hire.currency || 'STX'}</span>
+            </div>
+
+            {hire.subAgentHires && hire.subAgentHires.length > 0 && (
+              <SubAgentTree hires={hire.subAgentHires} depth={depth + 1} />
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+};
+
 export default function AgentChat({ onNewPayments, onProtocolTrace }: Params) {
+  const { language, t } = useI18n();
   const [query, setQuery] = useState('');
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -56,6 +100,122 @@ export default function AgentChat({ onNewPayments, onProtocolTrace }: Params) {
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
+  const clientId = useRef('');
+
+  useEffect(() => {
+    let id = localStorage.getItem('synergi_client_id');
+    if (!id) {
+      id = `client_${Math.random().toString(36).substring(2, 11)}`;
+      localStorage.setItem('synergi_client_id', id);
+    }
+    clientId.current = id;
+  }, []);
+
+  useEffect(() => {
+    let sse: EventSource | null = null;
+    let reconnectTimeout: NodeJS.Timeout;
+
+    const connect = () => {
+      if (sse) sse.close();
+
+      const sseUrl = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/agent/events?clientId=${clientId.current}`;
+      sse = new EventSource(sseUrl);
+      eventSourceRef.current = sse;
+
+      // 1. Step Updates (Protocol Trace)
+      sse.addEventListener('step', (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          onProtocolTrace(data);
+        } catch (e) { console.error('SSE Step Error:', e); }
+      });
+
+      // 2. Thoughts / Inner Monologue
+      sse.addEventListener('thought', (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          onProtocolTrace(data); // Also log thoughts to trace
+
+          setMessages(prev => {
+            const lastMsg = prev[prev.length - 1];
+            if (lastMsg?.role === 'assistant' && lastMsg?.content === data.content) return prev;
+
+            return [...prev, {
+              role: 'assistant',
+              content: data.content,
+              depth: data.depth || 1,
+              subAgentHires: data.subAgentHires
+            }];
+          });
+        } catch (e) { console.error('SSE Thought Error:', e); }
+      });
+
+      // 3. Payment Events (Real-time Wallet Updates)
+      sse.addEventListener('payment', (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          onNewPayments(data.amount);
+          onProtocolTrace({ type: 'payment', amount: data.amount, agent: data.agent || data.worker, ...data });
+        } catch (e) { console.error('SSE Payment Error:', e); }
+      });
+
+      // 4. A2A Hiring Events (Recursive Economy Visualization)
+      sse.addEventListener('a2a-hire', (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          onProtocolTrace({ type: 'a2a-hire', ...data });
+
+          setMessages(prev => [...prev, {
+            role: 'system',
+            content: `🔄 **Recursive Hire:** ${data.hirer} hired **${data.worker}** for ${data.cost} STX.`,
+            depth: data.depth || 1
+          }]);
+        } catch (e) { console.error('SSE A2A Error:', e); }
+      });
+
+      // 5. Completion
+      sse.addEventListener('done', (event) => {
+        setAgentStatus('idle');
+        setIsProcessing(false);
+      });
+
+      // 6. Errors
+      sse.addEventListener('error', (event) => {
+         try {
+           const data = (event as any).data ? JSON.parse((event as any).data) : { content: 'Connection stream interrupted' };
+           setMessages(prev => [...prev, { role: 'system', content: `**Error:** ${data.content || data.message}`, depth: 0 }]);
+         } catch (e) {
+           console.warn('SSE Error Event:', e);
+         }
+         setAgentStatus('idle');
+         setIsProcessing(false);
+      });
+
+      sse.onerror = (err) => {
+         console.error('SSE Connection Error:', err);
+         if (sse?.readyState === EventSource.CLOSED) {
+           setAgentStatus('idle');
+           setIsProcessing(false);
+         }
+         // Reconnect
+         reconnectTimeout = setTimeout(connect, 3000);
+      };
+    };
+
+    connect();
+
+    // Support marketplace hiring via URL query
+    const urlParams = new URLSearchParams(window.location.search);
+    const initialQuery = urlParams.get('query');
+    if (initialQuery) {
+      setQuery(initialQuery);
+    }
+
+    return () => {
+      if (sse) sse.close();
+      clearTimeout(reconnectTimeout);
+    };
+  }, [onNewPayments, onProtocolTrace]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -76,70 +236,34 @@ export default function AgentChat({ onNewPayments, onProtocolTrace }: Params) {
     setAgentStatus('planning');
 
     try {
-      if (eventSourceRef.current) {
-        eventSourceRef.current.close();
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/agent/query`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: userMsg, clientId: clientId.current })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const encodedQuery = encodeURIComponent(userMsg);
-      const sse = new EventSource(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4002'}/api/agent/manager/stream?query=${encodedQuery}`);
-      eventSourceRef.current = sse;
+      const result = await response.json();
 
-      sse.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
+      // The final result is also sent via SSE 'done', but we can update UI here from the direct response too
+      if (result.finalAnswer) {
+         setMessages(prev => [...prev, {
+            role: 'assistant',
+            content: result.finalAnswer,
+            depth: 0
+         }]);
+      }
 
-          if (data.type === 'step' || data.type === 'thought' || data.type === 'tool_result') {
-            onProtocolTrace(data);
-          }
-
-          if (data.type === 'thought') {
-            setMessages(prev => [...prev, {
-              role: 'assistant',
-              content: data.content,
-              depth: 1
-            }]);
-          } else if (data.type === 'payment') {
-             onNewPayments(data.amount);
-             onProtocolTrace({ type: 'payment', amount: data.amount, agent: data.agent });
-          } else if (data.type === 'result') {
-            setMessages(prev => [...prev, {
-              role: 'system',
-              content: `**Execution Complete.** Result: ${data.content}`,
-              depth: 0
-            }]);
-            setAgentStatus('idle');
-            setIsProcessing(false);
-            sse.close();
-          } else if (data.type === 'error') {
-            setMessages(prev => [...prev, {
-              role: 'system',
-              content: `**Error:** ${data.content}`,
-              depth: 0
-            }]);
-            setAgentStatus('idle');
-            setIsProcessing(false);
-            sse.close();
-          }
-        } catch (err) {
-          console.error('SSE Parse Error:', err);
-        }
-      };
-
-      sse.onerror = (err) => {
-        console.error('SSE Error:', err);
-        setIsProcessing(false);
-        setAgentStatus('idle');
-        sse.close();
-
-        setMessages(prev => {
-            const last = prev[prev.length - 1];
-            if (last.content.includes('Execution Complete')) return prev;
-            return [...prev, { role: 'system', content: "**Connection terminated.**" }];
-        });
-      };
+      // Explicit UI reset after successful API fetch to prevent stuck "Thinking" state
+      setIsProcessing(false);
+      setAgentStatus('idle');
 
     } catch (error) {
       console.error('API Error:', error);
+      setMessages(prev => [...prev, { role: 'system', content: `**Error:** Failed to connect to agent service.` }]);
       setIsProcessing(false);
       setAgentStatus('idle');
     }
@@ -162,20 +286,20 @@ export default function AgentChat({ onNewPayments, onProtocolTrace }: Params) {
           <div style={{
              width: 40, height: 40,
              background: 'var(--accent-primary)',
-             boxShadow: '4px 4px 0 0 #000',
+             boxShadow: '0 2px 8px rgba(14,165,233,0.2)',
              display: 'flex', alignItems: 'center', justifyContent: 'center',
              borderRadius: 'var(--radius-sm)'
           }}>
-            <Terminal size={24} color="#000" strokeWidth={3} />
+            <Terminal size={24} color="#fff" strokeWidth={3} />
           </div>
           <div>
             <h2 className="mono" style={{ fontSize: '1.2rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '-0.03em', color: 'var(--text-primary)' }}>
-              Manager Agent
+              {t.managerAgent}
             </h2>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
               <span style={{
                 width: 8, height: 8, background: agentStatus === 'idle' ? 'var(--text-muted)' : 'var(--accent-success)',
-                borderRadius: '50%', border: '1px solid #000'
+                borderRadius: '50%', border: '1px solid var(--border-subtle)'
               }} />
               <span className="mono" style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>
                 {agentStatus === 'idle' ? 'STANDBY' : agentStatus}
@@ -233,16 +357,51 @@ export default function AgentChat({ onNewPayments, onProtocolTrace }: Params) {
               <div style={{
                 maxWidth: isSystem ? '100%' : '85%',
                 padding: '16px 20px',
-                background: isUser ? 'var(--bg-tertiary)' : 'var(--bg-secondary)',
-                border: `1px solid ${isUser ? 'var(--accent-primary)' : 'var(--border-strong)'}`,
-                boxShadow: `4px 4px 0 0 ${isUser ? 'var(--accent-primary)' : '#000'}`,
-                color: isUser ? 'var(--text-primary)' : 'var(--text-secondary)',
-                borderRadius: 'var(--radius-sm)',
+                background: isUser ? '#f0f7ff' : 'var(--bg-secondary)',
+                border: `1px solid ${isUser ? 'rgba(14,165,233,0.3)' : 'var(--border-subtle)'}`,
+                boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+                color: 'var(--text-primary)',
+                borderRadius: 12,
                 fontSize: '0.95rem',
                 lineHeight: 1.6,
-                transform: isUser ? 'translate(-2px, -2px)' : 'none'
               }}>
                 <SimpleMarkdown text={msg.content} />
+
+                {msg.subAgentHires && msg.subAgentHires.length > 0 && (
+                  <div style={{
+                    marginTop: 12,
+                    padding: 12,
+                    background: '#f8f9fa',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: 8,
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                      <div className="brutal-text" style={{ fontSize: '0.65rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                        A2A Economy Loop Visualized
+                      </div>
+                      <button
+                        onClick={() => {
+                          alert('Topology snapshot copied to clipboard for X sharing! 🚀');
+                        }}
+                        className="btn"
+                        style={{ padding: '6px 10px', fontSize: '0.6rem' }}
+                      >
+                        <Share2 size={12} /> {language === 'es' ? 'COMPARTIR' : (language === 'hi' ? 'शेयर' : 'SHARE')}
+                      </button>
+                    </div>
+
+                    <A2ATopology hires={msg.subAgentHires} />
+
+                    <div style={{ marginTop: 12 }}>
+                      <details>
+                        <summary style={{ fontSize: '0.7rem', color: 'var(--text-muted)', cursor: 'pointer' }} className="mono">
+                          {language === 'es' ? 'Ver registros de ejecución' : (language === 'hi' ? 'निष्पादन लॉग देखें' : 'View Execution Logs')}
+                        </summary>
+                        <SubAgentTree hires={msg.subAgentHires} />
+                      </details>
+                    </div>
+                  </div>
+                )}
 
                 {msg.cost && (
                   <div style={{
@@ -272,20 +431,20 @@ export default function AgentChat({ onNewPayments, onProtocolTrace }: Params) {
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Execute a complex task..."
+          placeholder={t.placeholder}
           disabled={isProcessing}
           className="mono"
           style={{
             width: '100%',
-            background: 'var(--bg-primary)',
-            border: '2px solid var(--border-strong)',
-            color: 'var(--text-primary)',
+            background: '#f8f9fa',
+            border: '1px solid #e5e7eb',
+            color: '#111827',
             padding: '16px 20px',
             paddingRight: 60,
             fontSize: '1rem',
-            borderRadius: 'var(--radius-sm)',
+            borderRadius: 12,
             outline: 'none',
-            boxShadow: 'inset 4px 4px 0 0 rgba(0,0,0,0.5)'
+            boxShadow: '0 1px 3px rgba(0,0,0,0.06)'
           }}
           onFocus={(e) => e.target.style.borderColor = 'var(--accent-primary)'}
           onBlur={(e) => e.target.style.borderColor = 'var(--border-strong)'}
@@ -298,18 +457,18 @@ export default function AgentChat({ onNewPayments, onProtocolTrace }: Params) {
             right: 12,
             top: '50%',
             transform: 'translateY(-50%)',
-            background: query.trim() && !isProcessing ? 'var(--accent-primary)' : 'var(--border-strong)',
+            background: query.trim() && !isProcessing ? '#FF854B' : '#d1d5db',
             border: 'none',
-            color: '#000',
+            color: '#fff',
             width: 36,
             height: 36,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            borderRadius: 'var(--radius-sm)',
+            borderRadius: 8,
             cursor: query.trim() && !isProcessing ? 'pointer' : 'default',
-            boxShadow: query.trim() && !isProcessing ? '2px 2px 0 0 #000' : 'none',
-            transition: 'all 0.1s'
+            boxShadow: query.trim() && !isProcessing ? '0 2px 6px rgba(14,165,233,0.3)' : 'none',
+            transition: 'all 0.2s ease'
           }}
         >
           {isProcessing ? <Loader2 size={20} className="spin" /> : <Send size={20} strokeWidth={3} />}
@@ -328,7 +487,7 @@ export default function AgentChat({ onNewPayments, onProtocolTrace }: Params) {
             fontSize: '0.8rem'
          }} className="mono">
             <Activity size={14} className="spin" color="var(--accent-success)" />
-            <span>AGENT IS THINKING...</span>
+            <span>{t.thinking}</span>
          </div>
       )}
     </div>

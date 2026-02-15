@@ -35,7 +35,7 @@ dotenv.config();
 // ═══════════════════════════════════════════════════════════════════════════
 
 const PRIVATE_KEY = process.env.AGENT_PRIVATE_KEY;
-const SERVER_URL = process.env.AGENT_SERVER_URL || 'http://localhost:3001';
+const SERVER_URL = process.env.AGENT_SERVER_URL || 'http://localhost:4002';
 const NETWORK = (process.env.NETWORK as 'testnet' | 'mainnet') || 'testnet';
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
@@ -114,10 +114,12 @@ interface AgentPlan {
 let availableTools: Tool[] = [];
 
 async function discoverTools(): Promise<Tool[]> {
+  console.log(`[AGENT] [DEBUG] SERVER_URL is: ${SERVER_URL}`);
   console.log('[AGENT] [SEARCH] Discovering available Worker Agents...');
   try {
     const res = await axios.get(`${SERVER_URL}/api/tools`);
-    availableTools = res.data.tools;
+    // Handle both { tools: [] } and [] response formats
+    availableTools = Array.isArray(res.data) ? res.data : res.data.tools || [];
 
     // Sort by efficiency (reputation² / price)
     availableTools = evaluateWorkers(availableTools);
@@ -374,13 +376,55 @@ async function executeTool(
       console.log(`  Payload: ${JSON.stringify(err.response?.data || {})}`);
     }
 
+    // -- Self-Healing: Retry with Fallback Agents --
+    const MAX_RETRIES = 2;
+    const alternatives = hiring.alternatives || [];
+
+    for (let retry = 0; retry < Math.min(MAX_RETRIES, alternatives.length); retry++) {
+      const fallback = alternatives[retry];
+      console.log(`[AGENT] [SELF-HEAL] Attempt ${retry + 1}: Switching from ${tool.name} to ${fallback.name}`);
+      console.log(`[AGENT] [SELF-HEAL] Fallback: ${fallback.name} (Rep: ${fallback.reputation}, Cost: ${fallback.price.STX} STX)`);
+
+      try {
+        const fallbackRes = await api.post(`${fallback.endpoint}?token=${token}`, params);
+
+        const fallbackPaymentInfo = decodePaymentResponse(
+          (fallbackRes.headers as Record<string, string>)['payment-response'] || ''
+        );
+
+        const healedResult: ToolCallResult = {
+          tool: toolId,
+          agentName: `${fallback.name} (healed from ${tool.name})`,
+          success: true,
+          data: fallbackRes.data,
+          hiringReason: `${reason} | SELF-HEALED: ${tool.name} failed (${err.message}), recovered via ${fallback.name}`,
+          latencyMs: Date.now() - startTime,
+        };
+
+        if (fallbackPaymentInfo) {
+          healedResult.payment = {
+            transaction: fallbackPaymentInfo.transaction,
+            token,
+            amount: `${fallback.price.STX} STX`,
+            explorerUrl: getExplorerURL(fallbackPaymentInfo.transaction, NETWORK),
+          };
+          console.log(`[AGENT] [SELF-HEAL] Recovered via ${fallback.name} | Paid ${fallback.price.STX} STX`);
+        }
+
+        return healedResult;
+      } catch (retryErr: any) {
+        console.error(`[AGENT] [SELF-HEAL] Fallback ${fallback.name} also failed: ${retryErr.message}`);
+      }
+    }
+
+    // All retries exhausted
     return {
       tool: toolId,
       agentName: tool.name,
       success: false,
       data: null,
       hiringReason: reason,
-      error: `HTTP ${status}: ${err.message}`,
+      error: `HTTP ${status}: ${err.message} (self-healing exhausted after ${Math.min(MAX_RETRIES, alternatives.length)} fallback attempts)`,
       latencyMs: Date.now() - startTime,
     };
   }
@@ -478,7 +522,8 @@ async function synthesizeAnswer(query: string, results: ToolCallResult[]): Promi
   try {
     if (groqClient) {
       const context = successful.map(r => {
-        const content = r.data?.result || r.data?.summary || r.data?.weather || r.data?.code || r.data;
+        // Prioritize KaggleIngest TOON content
+        const content = r.data?.toon_content || r.data?.result || r.data?.summary || r.data?.weather || r.data?.code || r.data;
         return `${r.agentName}: ${typeof content === 'string' ? content : JSON.stringify(content)}`;
       }).join('\n\n');
 

@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 
-const AGENT_PRIVATE_KEY = '6a390fcd2dac413eec1354b88a58854699752fddc3aacabb596c506caedb1115';
-const SERVER_ADDRESS = 'ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM';
+const AGENT_PRIVATE_KEY = process.env.NEXT_PUBLIC_AGENT_PRIVATE_KEY || '';
+const SERVER_ADDRESS = process.env.NEXT_PUBLIC_SERVER_ADDRESS || '';
 
 export default function WalletInfo() {
   const shortAddr = (addr: string) => `${addr.slice(0, 8)}…${addr.slice(-6)}`;
@@ -13,12 +13,27 @@ export default function WalletInfo() {
   useEffect(() => {
     const fetchBalance = async () => {
       try {
-        const res = await fetch(`https://api.testnet.hiro.so/extended/v1/address/${SERVER_ADDRESS}/balances`);
-        const data = await res.json();
-        const stx = data.stx.balance; // MicroSTX
-        setBalance((parseInt(stx) / 1000000).toFixed(2));
+        // Safe fetch with timeout
+        const controller = new AbortController();
+        const id = setTimeout(() => controller.abort(), 5000);
+
+        try {
+          const res = await fetch(`https://api.testnet.hiro.so/extended/v1/address/${SERVER_ADDRESS}/balances`, {
+            signal: controller.signal
+          });
+          clearTimeout(id);
+
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+          const data = await res.json();
+          const stx = data.stx.balance; // MicroSTX
+          setBalance((parseInt(stx) / 1000000).toFixed(2));
+        } catch (innerErr) {
+          clearTimeout(id);
+          throw innerErr;
+        }
       } catch (e) {
-        console.error('Failed to fetch balance', e);
+        // Suppress network errors to avoid console spam, just update UI state
         setBalance('---');
       }
     };
@@ -38,10 +53,10 @@ export default function WalletInfo() {
       }}>
         <div style={{
           width: 6, height: 6, borderRadius: '50%',
-          background: '#10b981',
-          boxShadow: '0 0 6px rgba(16,185,129,0.6)',
+          background: '#FF854B',
+          boxShadow: '0 0 6px rgba(255,133,75,0.6)',
         }} />
-        <span style={{ fontSize: '0.6rem', color: '#10b981', fontWeight: 600, fontFamily: 'var(--font-mono)' }}>
+        <span style={{ fontSize: '0.6rem', color: '#FF854B', fontWeight: 600, fontFamily: 'var(--font-mono)' }}>
           TESTNET
         </span>
       </div>

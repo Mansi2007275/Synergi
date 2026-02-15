@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Server, Cpu, Globe, ArrowRight, ShieldCheck, Box } from 'lucide-react';
+import { getAgentIcon, getAgentColor } from './AgentIcons';
+import { useI18n } from '@/lib/LanguageContext';
 
 interface Tool {
   id: string;
@@ -15,6 +17,7 @@ interface Tool {
 }
 
 export default function ToolCatalog() {
+  const { t } = useI18n();
   const [tools, setTools] = useState<Tool[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -43,17 +46,23 @@ export default function ToolCatalog() {
       });
   }, []);
 
-  if (loading) return <div className="mono" style={{ padding: 20 }}>Loading agent network...</div>;
+  if (loading) return <div className="mono" style={{ padding: 20 }}>{t.loadingAgents}</div>;
 
   return (
-    <div style={{ marginTop: 24, padding: 24, borderTop: '2px solid var(--border-strong)' }}>
+    <div style={{
+      marginTop: 24,
+      padding: 24,
+      border: '1px solid var(--border-strong)',
+      borderRadius: 'var(--radius-md)',
+      background: 'var(--bg-secondary)'
+    }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
         <h3 className="mono" style={{ fontSize: '1rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: 10 }}>
-          <Box size={20} /> AVAILABLE AGENTS
+          <Box size={20} /> {t.availableAgents}
         </h3>
         <div className="badge badge-stx">
            <Globe size={12} style={{ marginRight: 6 }} />
-           GLOBAL NETWORK
+           {t.globalNetwork}
         </div>
       </div>
 
@@ -67,6 +76,9 @@ export default function ToolCatalog() {
 }
 
 function AgentCard({ tool }: { tool: Tool }) {
+  const Icon = getAgentIcon(tool.id);
+  const color = getAgentColor(tool.id);
+
   return (
     <div style={{
       background: 'var(--bg-tertiary)',
@@ -78,16 +90,16 @@ function AgentCard({ tool }: { tool: Tool }) {
       position: 'relative',
       display: 'flex',
       flexDirection: 'column',
-      boxShadow: '4px 4px 0 0 #000'
+      boxShadow: '0 2px 8px rgba(0,0,0,0.06)'
     }}
     onMouseEnter={e => {
-        e.currentTarget.style.transform = 'translate(-2px, -2px)';
-        e.currentTarget.style.boxShadow = '6px 6px 0 0 var(--accent-primary)';
-        e.currentTarget.style.borderColor = tool.isExternal ? 'var(--accent-cyan)' : 'var(--accent-primary)';
+        e.currentTarget.style.transform = 'translateY(-2px)';
+        e.currentTarget.style.boxShadow = `0 6px 16px ${color}25`;
+        e.currentTarget.style.borderColor = color;
     }}
     onMouseLeave={e => {
         e.currentTarget.style.transform = 'none';
-        e.currentTarget.style.boxShadow = '4px 4px 0 0 #000';
+        e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.06)';
         e.currentTarget.style.borderColor = 'var(--border-strong)';
     }}
     >
@@ -95,13 +107,14 @@ function AgentCard({ tool }: { tool: Tool }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <div style={{
             width: 40, height: 40,
-            background: tool.isExternal ? 'rgba(34, 211, 238, 0.1)' : 'rgba(168, 85, 247, 0.1)',
-            border: `1px solid ${tool.isExternal ? 'var(--accent-cyan)' : 'var(--accent-primary)'}`,
+            background: `${color}15`,
+            border: `1px solid ${color}`,
             borderRadius: 'var(--radius-sm)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: '2px 2px 0 0 #000'
+            boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+            color: color
           }}>
-            {tool.isExternal ? <Globe size={20} color="var(--accent-cyan)" /> : <Cpu size={20} color="var(--accent-primary)" />}
+            <Icon size={20} />
           </div>
           <div>
              <h4 style={{ fontSize: '1rem', fontWeight: 700, margin: 0, textTransform: 'uppercase', letterSpacing: '-0.02em' }}>{tool.name}</h4>
@@ -127,7 +140,7 @@ function AgentCard({ tool }: { tool: Tool }) {
               fontSize: '0.65rem',
               fontWeight: 800,
               background: 'var(--accent-success)',
-              color: '#000',
+              color: '#fff',
               padding: '2px 6px',
               borderRadius: 'var(--radius-sm)',
               border: '1px solid var(--accent-success)'
@@ -140,7 +153,7 @@ function AgentCard({ tool }: { tool: Tool }) {
               fontSize: '0.65rem',
               fontWeight: 800,
               background: 'var(--accent-secondary)',
-              color: '#000',
+              color: '#fff',
               padding: '2px 6px',
               borderRadius: 'var(--radius-sm)',
               border: '1px solid var(--accent-secondary)'

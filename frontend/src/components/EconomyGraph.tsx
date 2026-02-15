@@ -33,9 +33,9 @@ interface EconomyStats {
 }
 
 const NODE_COLORS: Record<string, { bg: string; border: string; glow: string }> = {
-  user:    { bg: '#1a1a2e', border: '#6366f1', glow: 'rgba(99,102,241,0.35)' },
-  manager: { bg: '#1a1a2e', border: '#06b6d4', glow: 'rgba(6,182,212,0.35)' },
-  worker:  { bg: '#1a1a2e', border: '#10b981', glow: 'rgba(16,185,129,0.35)' },
+  user:    { bg: '#ffffff', border: '#4f46e5', glow: 'rgba(79,70,229,0.15)' },
+  manager: { bg: '#ffffff', border: '#0891b2', glow: 'rgba(8,145,178,0.15)' },
+  worker:  { bg: '#ffffff', border: '#059669', glow: 'rgba(5,150,105,0.15)' },
 };
 
 const WORKER_AGENTS = [
@@ -49,7 +49,7 @@ const WORKER_AGENTS = [
   { id: 'translate-agent', label: 'Translate', slot: 7 },
 ];
 
-export default function EconomyGraph() {
+export default function EconomyGraph({ refreshTrigger = 0 }: { refreshTrigger?: number }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animRef = useRef<number>(0);
   const [edges, setEdges] = useState<PaymentEdge[]>([]);
@@ -112,7 +112,7 @@ export default function EconomyGraph() {
     fetchData();
     const interval = setInterval(fetchData, 4000);
     return () => clearInterval(interval);
-  }, []);
+  }, [refreshTrigger]);
 
   // Canvas rendering
   useEffect(() => {
@@ -140,7 +140,7 @@ export default function EconomyGraph() {
       const managerNode = nodes.find(n => n.id === 'manager')!;
 
       // User → Manager line
-      drawEdge(ctx, userNode, managerNode, false, tick, '#6366f1');
+      drawEdge(ctx, userNode, managerNode, false, tick, '#FF854B');
 
       // Manager → Workers
       const workerNodes = nodes.filter(n => n.type === 'worker');
@@ -149,7 +149,7 @@ export default function EconomyGraph() {
         const isActive = activeWorkerIds.has(wn.id);
         const edgeData = edges.find(e => e.to === wn.id);
         const isA2A = edgeData?.isA2A || false;
-        const color = isA2A ? '#a855f7' : '#10b981'; // Purple for A2A, Green for Standard
+        const color = isA2A ? '#a855f7' : '#FF854B'; // Purple for A2A, Orange for Standard
         drawEdge(ctx, managerNode, wn, isActive, tick, color);
       });
 
@@ -192,10 +192,10 @@ export default function EconomyGraph() {
         ctx.font = `bold ${node.type === 'worker' ? 9 : 10}px var(--font-mono, monospace)`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText(node.type === 'user' ? '👤' : node.type === 'manager' ? '🧠' : '⚡', node.x, node.y - 2);
+        ctx.fillText(node.type === 'user' ? 'U' : node.type === 'manager' ? 'M' : 'W', node.x, node.y - 2);
 
         // Label below
-        ctx.fillStyle = 'var(--text-secondary, #94a3b8)';
+        ctx.fillStyle = '#475569';
         ctx.font = `600 ${node.type === 'worker' ? 9 : 11}px sans-serif`;
         ctx.fillText(node.label, node.x, node.y + radius + 14);
 
@@ -248,9 +248,9 @@ export default function EconomyGraph() {
         <div style={{ display: 'flex', gap: 20 }}>
           {[
             { label: 'Payments', value: stats.totalPayments, color: '#06b6d4' },
-            { label: 'Volume', value: `${stats.totalVolume} STX`, color: '#10b981' },
+            { label: 'Volume', value: `${stats.totalVolume} STX`, color: '#FF854B' },
             { label: 'A2A Hires', value: stats.a2aCount, color: '#f59e0b' },
-            { label: 'Agents', value: stats.activeAgents, color: '#6366f1' },
+            { label: 'Agents', value: stats.activeAgents, color: '#FF854B' },
           ].map(s => (
             <div key={s.label} style={{ textAlign: 'center' }}>
               <div style={{ fontSize: '0.95rem', fontWeight: 700, color: s.color, fontFamily: 'var(--font-mono)' }}>{s.value}</div>
@@ -260,16 +260,16 @@ export default function EconomyGraph() {
         </div>
       </div>
       {/* Canvas */}
-      <div style={{ position: 'relative', borderRadius: 10, overflow: 'hidden', border: '1px solid var(--border-subtle)', background: 'rgba(0,0,0,0.3)' }}>
+      <div style={{ position: 'relative', borderRadius: 10, overflow: 'hidden', border: '1px solid #e2e8f0', background: '#ffffff' }}>
         <canvas ref={canvasRef} style={{ width: '100%', height: 260, display: 'block' }} />
         {/* Legend */}
         <div style={{
           position: 'absolute', bottom: 8, left: 12,
-          display: 'flex', gap: 14, fontSize: '0.6rem', color: 'var(--text-muted)',
+          display: 'flex', gap: 14, fontSize: '0.6rem', color: '#64748b',
         }}>
           {[
-            { color: '#6366f1', label: 'User → Manager' },
-            { color: '#10b981', label: 'Manager → Worker' },
+            { color: '#FF854B', label: 'User → Manager' },
+            { color: '#FF854B', label: 'Manager → Worker' },
             { color: '#f59e0b', label: 'A2A Recursive' },
           ].map(l => (
             <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -299,8 +299,8 @@ function drawEdge(ctx: CanvasRenderingContext2D, from: PaymentNode, to: PaymentN
   ctx.beginPath();
   ctx.moveTo(from.x, from.y);
   ctx.lineTo(to.x, to.y);
-  ctx.strokeStyle = active ? color : 'rgba(255,255,255,0.06)';
-  ctx.lineWidth = active ? 3 : 0.8;
+  ctx.strokeStyle = active ? color : '#e2e8f0';
+  ctx.lineWidth = active ? 3 : 1.2;
 
   if (active) {
     ctx.shadowBlur = 12;

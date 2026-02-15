@@ -26,12 +26,17 @@
 (define-constant err-invalid-params (err u106))
 (define-constant err-job-already-complete (err u107))
 (define-constant err-self-hire (err u108))
+(define-constant err-escrow-not-found (err u120))
+(define-constant err-deadline-not-passed (err u121))
+(define-constant err-job-already-settled (err u122))
+(define-constant err-not-disputable (err u123))
 
 ;; Reputation thresholds
 (define-constant REPUTATION-MAX u10000)          ;; 100.00 (2 decimal places)
 (define-constant REPUTATION-SUCCESS-BONUS u50)   ;; +0.50 per success
 (define-constant REPUTATION-FAILURE-PENALTY u100) ;; -1.00 per failure
 (define-constant REPUTATION-INITIAL u5000)       ;; Start at 50.00
+(define-constant ESCROW-TIMEOUT u144)            ;; ~24 hours on Stacks (~10 min/block)
 
 ;; ── Data Variables ─────────────────────────────────────────────────────────
 
@@ -71,6 +76,18 @@
         parent-job-id: uint,        ;; 0 if top-level, else recursive parent
         created-at: uint,
         completed-at: uint
+    }
+)
+
+;; Escrow records — funds held by contract until job settlement
+(define-map Escrow
+    uint    ;; job-id
+    {
+        amount: uint,               ;; micro-STX held
+        requester: principal,
+        worker: principal,
+        deadline: uint,             ;; block-height after which requester can reclaim
+        settled: bool               ;; true once released or refunded
     }
 )
 
@@ -145,7 +162,7 @@
 
 ;; ── Job Lifecycle ──────────────────────────────────────────────────────────
 
-;; Create a job (hire an agent) — STX is transferred on-chain
+;; Create a job (hire an agent) — STX is held in escrow by the contract
 (define-public (create-job
     (worker principal)
     (category (string-ascii 32))
@@ -157,8 +174,16 @@
          (job-id (var-get next-job-id)))
         ;; Cannot hire yourself
         (asserts! (not (is-eq caller worker)) err-self-hire)
-        ;; Transfer payment from requester to worker
-        (try! (stx-transfer? amount caller worker))
+        ;; Transfer payment from requester to CONTRACT (escrow)
+        (try! (stx-transfer? amount caller (as-contract tx-sender)))
+        ;; Record the escrow
+        (map-set Escrow job-id {
+            amount: amount,
+            requester: caller,
+            worker: worker,
+            deadline: (+ block-height ESCROW-TIMEOUT),
+            settled: false
+        })
         ;; Record the job
         (map-set Jobs job-id {
             requester: caller,
@@ -177,17 +202,24 @@
     )
 )
 
-;; Mark a job as complete (called by the worker)
+;; Mark a job as complete (called by the worker) — releases escrow to worker
 (define-public (complete-job (job-id uint))
     (let
         ((caller tx-sender)
          (job (unwrap! (map-get? Jobs job-id) err-job-not-found))
          (worker (get worker job))
-         (worker-profile (unwrap! (map-get? Agents worker) err-agent-not-found)))
+         (worker-profile (unwrap! (map-get? Agents worker) err-agent-not-found))
+         (escrow (unwrap! (map-get? Escrow job-id) err-escrow-not-found)))
         ;; Only the worker can mark complete
         (asserts! (is-eq caller worker) err-unauthorized)
         ;; Job must be pending
         (asserts! (is-eq (get status job) "pending") err-job-already-complete)
+        ;; Escrow must not already be settled
+        (asserts! (not (get settled escrow)) err-job-already-settled)
+        ;; Release escrow: transfer from contract to worker
+        (try! (as-contract (stx-transfer? (get amount escrow) tx-sender worker)))
+        ;; Mark escrow as settled
+        (map-set Escrow job-id (merge escrow { settled: true }))
         ;; Update job status
         (map-set Jobs job-id (merge job {
             status: "complete",
@@ -209,16 +241,22 @@
     )
 )
 
-;; Mark a job as failed
+;; Mark a job as failed — refunds escrow to requester
 (define-public (fail-job (job-id uint))
     (let
         ((caller tx-sender)
          (job (unwrap! (map-get? Jobs job-id) err-job-not-found))
          (worker (get worker job))
-         (worker-profile (unwrap! (map-get? Agents worker) err-agent-not-found)))
+         (worker-profile (unwrap! (map-get? Agents worker) err-agent-not-found))
+         (escrow (unwrap! (map-get? Escrow job-id) err-escrow-not-found)))
         ;; Only requester or contract-owner can fail a job
         (asserts! (or (is-eq caller (get requester job)) (is-eq caller contract-owner)) err-unauthorized)
         (asserts! (is-eq (get status job) "pending") err-job-already-complete)
+        (asserts! (not (get settled escrow)) err-job-already-settled)
+        ;; Refund escrow to requester
+        (try! (as-contract (stx-transfer? (get amount escrow) tx-sender (get requester escrow))))
+        ;; Mark escrow settled
+        (map-set Escrow job-id (merge escrow { settled: true }))
         ;; Update job
         (map-set Jobs job-id (merge job {
             status: "failed",
@@ -235,6 +273,49 @@
                 jobs-failed: (+ (get jobs-failed worker-profile) u1)
             }))
         )
+        (ok true)
+    )
+)
+
+;; Refund escrow after deadline — callable by anyone (permissionless timeout)
+(define-public (refund-escrow (job-id uint))
+    (let
+        ((job (unwrap! (map-get? Jobs job-id) err-job-not-found))
+         (escrow (unwrap! (map-get? Escrow job-id) err-escrow-not-found)))
+        ;; Escrow must not already be settled
+        (asserts! (not (get settled escrow)) err-job-already-settled)
+        ;; Job must still be pending
+        (asserts! (is-eq (get status job) "pending") err-job-already-complete)
+        ;; Deadline must have passed
+        (asserts! (>= block-height (get deadline escrow)) err-deadline-not-passed)
+        ;; Refund to requester
+        (try! (as-contract (stx-transfer? (get amount escrow) tx-sender (get requester escrow))))
+        ;; Mark settled and job failed
+        (map-set Escrow job-id (merge escrow { settled: true }))
+        (map-set Jobs job-id (merge job {
+            status: "failed",
+            completed-at: block-height
+        }))
+        (ok true)
+    )
+)
+
+;; Dispute a job — parks funds until admin resolution
+(define-public (dispute-job (job-id uint))
+    (let
+        ((caller tx-sender)
+         (job (unwrap! (map-get? Jobs job-id) err-job-not-found))
+         (escrow (unwrap! (map-get? Escrow job-id) err-escrow-not-found)))
+        ;; Only requester can dispute
+        (asserts! (is-eq caller (get requester job)) err-unauthorized)
+        ;; Must be pending and unsettled
+        (asserts! (is-eq (get status job) "pending") err-job-already-complete)
+        (asserts! (not (get settled escrow)) err-job-already-settled)
+        ;; Mark as disputed — funds stay in contract until admin resolves
+        (map-set Jobs job-id (merge job {
+            status: "disputed",
+            completed-at: u0
+        }))
         (ok true)
     )
 )
@@ -263,6 +344,11 @@
 ;; Get job details
 (define-read-only (get-job (job-id uint))
     (map-get? Jobs job-id)
+)
+
+;; Get escrow details for a job
+(define-read-only (get-escrow (job-id uint))
+    (map-get? Escrow job-id)
 )
 
 ;; Get dynamic price: base + reputation premium

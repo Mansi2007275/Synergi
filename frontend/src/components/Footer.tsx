@@ -1,196 +1,342 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
+import { Github, Twitter, Send } from 'lucide-react';
 
 export default function Footer() {
+  const productLinks = [
+    { name: 'Dashboard', path: '/' },
+    { name: 'Agents', path: '/agents' },
+    { name: 'Tools', path: '/tools' },
+    { name: 'Marketplace', path: '/tools' },
+    { name: 'Analytics', path: '#' },
+  ];
+
+  const resourceLinks = [
+    { name: 'Documentation', path: '/docs' },
+    { name: 'API Reference', path: 'https://docs.stacks.co' },
+    { name: 'Tutorials', path: '#' },
+    { name: 'Community', path: 'https://discord.gg/stacks' },
+    { name: 'Support', path: 'mailto:support@synergi.ai' },
+  ];
+
   return (
     <footer style={{
-      marginTop: 64,
-      paddingTop: 32,
-      paddingBottom: 24,
-      borderTop: '2px solid rgba(168, 85, 247, 0.2)',
-      background: 'linear-gradient(180deg, transparent 0%, rgba(168, 85, 247, 0.03) 100%)',
+      marginTop: 80,
+      borderTop: '1px solid #e5e7eb',
+      background: '#f8f9fa',
+      position: 'relative',
+      overflow: 'hidden',
     }}>
+      {/* Subtle Top Accent */}
       <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(4, 1fr)',
-        gap: 48,
-        marginBottom: 32,
-      }}>
+        height: 3,
+        background: 'linear-gradient(90deg, #FF854B, #f59e0b, #FF854B)',
+      }} />
+
+      <div className="footer-grid">
         {/* Brand Column */}
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-            <img
-              src="/logo.png"
-              alt="SYNERGI"
-              style={{
-                width: 36,
-                height: 36,
-                borderRadius: 'var(--radius-sm)',
-                border: '1px solid rgba(168, 85, 247, 0.3)',
-              }}
-            />
-            <span className="mono" style={{ fontWeight: 700, fontSize: '1.1rem', color: '#ffffff' }}>
-              SYNERGI
-            </span>
-          </div>
-          <p style={{ fontSize: '0.85rem', color: '#a1a1aa', lineHeight: 1.6, marginBottom: 16 }}>
-            Autonomous agent-to-agent micropayment marketplace powered by x402 protocol on Stacks.
+        <div className="brand-col">
+          <Link href="/" style={{ textDecoration: 'none' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
+              <img
+                src="/logo.png"
+                alt="SYNERGI"
+                style={{ width: 40, height: 40, borderRadius: 8, border: '1px solid #e5e7eb' }}
+              />
+              <span className="mono" style={{
+                fontWeight: 900,
+                fontSize: '1.3rem',
+                color: '#111827',
+                letterSpacing: '-0.04em',
+                textTransform: 'uppercase'
+              }}>
+                SYNERGI
+              </span>
+            </div>
+          </Link>
+          <p style={{
+            fontSize: '0.85rem',
+            color: '#6b7280',
+            lineHeight: 1.6,
+            marginBottom: 24,
+            maxWidth: '300px',
+            fontFamily: 'var(--font-mono)'
+          }}>
+            The autonomous layer for the agent economy. Secure, trustless A2A micropayments on Stacks.
           </p>
           <div style={{ display: 'flex', gap: 12 }}>
-            {['GitHub', 'Twitter', 'Discord'].map((social) => (
+            {[
+              { icon: Github, href: 'https://github.com/Mansi2007275/x402-autonomous-agent-?tab=readme-ov-file' },
+              { icon: Twitter, href: 'https://twitter.com/synergi' },
+              { icon: Send, href: 'https://t.me/synergi' }
+            ].map((social, i) => (
               <a
-                key={social}
-                href="#"
-                style={{
-                  width: 36,
-                  height: 36,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  borderRadius: 'var(--radius-sm)',
-                  border: '1px solid rgba(168, 85, 247, 0.3)',
-                  color: '#a1a1aa',
-                  textDecoration: 'none',
-                  fontSize: '0.75rem',
-                  fontWeight: 600,
-                  transition: 'all 0.2s ease',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = 'rgba(168, 85, 247, 0.6)';
-                  e.currentTarget.style.backgroundColor = 'rgba(168, 85, 247, 0.1)';
-                  e.currentTarget.style.color = '#ffffff';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = 'rgba(168, 85, 247, 0.3)';
-                  e.currentTarget.style.backgroundColor = 'transparent';
-                  e.currentTarget.style.color = '#a1a1aa';
-                }}
+                key={i}
+                href={social.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="social-button"
               >
-                {social[0]}
+                <social.icon size={18} />
               </a>
             ))}
           </div>
         </div>
 
         {/* Product Column */}
-        <div>
-          <h4 className="mono" style={{ fontSize: '0.8rem', fontWeight: 700, color: '#ffffff', marginBottom: 16, letterSpacing: '0.05em' }}>
-            PRODUCT
-          </h4>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {['Dashboard', 'Agents', 'Tools', 'Marketplace', 'Analytics'].map((link) => (
-              <a
-                key={link}
-                href="#"
-                style={{
-                  fontSize: '0.85rem',
-                  color: '#a1a1aa',
-                  textDecoration: 'none',
-                  transition: 'color 0.2s ease',
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.color = '#ffffff'}
-                onMouseLeave={(e) => e.currentTarget.style.color = '#a1a1aa'}
-              >
-                {link}
-              </a>
+        <div className="nav-col">
+          <h4 className="mono section-title">PRODUCT</h4>
+          <div className="links">
+            {productLinks.map((link) => (
+              <Link key={link.name} href={link.path} className="link">
+                {link.name}
+              </Link>
             ))}
           </div>
         </div>
 
         {/* Resources Column */}
-        <div>
-          <h4 className="mono" style={{ fontSize: '0.8rem', fontWeight: 700, color: '#ffffff', marginBottom: 16, letterSpacing: '0.05em' }}>
-            RESOURCES
-          </h4>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {['Documentation', 'API Reference', 'Tutorials', 'Community', 'Support'].map((link) => (
-              <a
-                key={link}
-                href="#"
-                style={{
-                  fontSize: '0.85rem',
-                  color: '#a1a1aa',
-                  textDecoration: 'none',
-                  transition: 'color 0.2s ease',
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.color = '#ffffff'}
-                onMouseLeave={(e) => e.currentTarget.style.color = '#a1a1aa'}
-              >
-                {link}
+        <div className="nav-col">
+          <h4 className="mono section-title">RESOURCES</h4>
+          <div className="links">
+            {resourceLinks.map((link) => (link.path.startsWith('/') ? (
+              <Link key={link.name} href={link.path} className="link">
+                {link.name}
+              </Link>
+            ) : (
+              <a key={link.name} href={link.path} className="link" target="_blank" rel="noopener noreferrer">
+                {link.name}
               </a>
-            ))}
+            )))}
           </div>
         </div>
 
         {/* Network Stats Column */}
-        <div>
-          <h4 className="mono" style={{ fontSize: '0.8rem', fontWeight: 700, color: '#ffffff', marginBottom: 16, letterSpacing: '0.05em' }}>
-            NETWORK
-          </h4>
+        <div className="network-col">
+          <h4 className="mono section-title">NETWORK STATUS</h4>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <div style={{
-              padding: '10px 12px',
-              borderRadius: 'var(--radius-sm)',
-              border: '1px solid rgba(168, 85, 247, 0.2)',
-              backgroundColor: 'rgba(168, 85, 247, 0.05)',
-            }}>
-              <div style={{ fontSize: '0.7rem', color: '#a1a1aa', marginBottom: 4 }}>Protocol</div>
-              <div className="mono" style={{ fontSize: '0.85rem', fontWeight: 600, color: '#c084fc' }}>x402</div>
+            <div className="stat-card">
+              <span className="label mono">PROTOCOL</span>
+              <span className="value mono">x402</span>
             </div>
-            <div style={{
-              padding: '10px 12px',
-              borderRadius: 'var(--radius-sm)',
-              border: '1px solid rgba(34, 211, 238, 0.2)',
-              backgroundColor: 'rgba(34, 211, 238, 0.05)',
-            }}>
-              <div style={{ fontSize: '0.7rem', color: '#a1a1aa', marginBottom: 4 }}>Network</div>
-              <div className="mono" style={{ fontSize: '0.85rem', fontWeight: 600, color: '#22d3ee' }}>Stacks Testnet</div>
+            <div className="stat-card">
+              <span className="label mono">CHAIN</span>
+              <span className="value mono">Stacks L2</span>
             </div>
-            <div style={{
-              padding: '10px 12px',
-              borderRadius: 'var(--radius-sm)',
-              border: '1px solid rgba(52, 211, 153, 0.2)',
-              backgroundColor: 'rgba(52, 211, 153, 0.05)',
-            }}>
-              <div style={{ fontSize: '0.7rem', color: '#a1a1aa', marginBottom: 4 }}>Settlement</div>
-              <div className="mono" style={{ fontSize: '0.85rem', fontWeight: 600, color: '#34d399' }}>STX / sBTC</div>
+            <div className="stat-card live">
+              <span className="label mono">SYSTEM</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div className="pulse-dot" />
+                <span className="value mono" style={{ color: '#16a34a' }}>OPERATIONAL</span>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
       {/* Bottom Bar */}
-      <div style={{
-        paddingTop: 24,
-        borderTop: '1px solid rgba(168, 85, 247, 0.15)',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-      }}>
-        <div className="mono" style={{ fontSize: '0.8rem', color: '#71717a' }}>
-          © 2026 SYNERGI. Built for Stacks Hackathon.
+      <div className="footer-bottom">
+        <div className="mono copyright">
+          &copy; 2026 SYNERGI_PROTOCOL. ALL RIGHTS RESERVED.
         </div>
-        <div style={{ display: 'flex', gap: 24 }}>
-          {['Privacy', 'Terms', 'License'].map((link) => (
-            <a
-              key={link}
-              href="#"
-              className="mono"
-              style={{
-                fontSize: '0.75rem',
-                color: '#71717a',
-                textDecoration: 'none',
-                transition: 'color 0.2s ease',
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.color = '#a1a1aa'}
-              onMouseLeave={(e) => e.currentTarget.style.color = '#71717a'}
-            >
-              {link}
-            </a>
-          ))}
+        <div className="bottom-links">
+          <Link href="/privacy" className="mono bottom-link">PRIVACY</Link>
+          <span style={{ color: '#e5e7eb' }}>|</span>
+          <Link href="/terms" className="mono bottom-link">TERMS</Link>
         </div>
       </div>
+
+      <style jsx>{`
+        .footer-grid {
+          display: grid;
+          grid-template-columns: 1.5fr 1fr 1fr 1.2fr;
+          gap: 64px;
+          padding: 56px 48px;
+          max-width: 1400px;
+          margin: 0 auto;
+        }
+
+        .section-title {
+          font-size: 0.75rem;
+          font-weight: 800;
+          margin-bottom: 20px;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          color: #111827;
+          border-left: 3px solid #FF854B;
+          padding-left: 10px;
+        }
+
+        .links {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+
+        .link {
+          font-size: 0.85rem;
+          color: #6b7280;
+          text-decoration: none;
+          transition: all 0.2s ease;
+          font-weight: 500;
+          position: relative;
+          width: fit-content;
+        }
+
+        .link:hover {
+          color: #111827;
+          padding-left: 6px;
+        }
+
+        .link::before {
+          content: '>';
+          position: absolute;
+          left: -10px;
+          opacity: 0;
+          transition: all 0.2s ease;
+          color: #FF854B;
+          font-family: monospace;
+        }
+
+        .link:hover::before {
+          opacity: 1;
+          left: 0;
+        }
+
+        .social-button {
+          width: 40px;
+          height: 40px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: #ffffff;
+          border: 1px solid #e5e7eb;
+          border-radius: 10px;
+          color: #6b7280;
+          transition: all 0.2s ease;
+          text-decoration: none;
+        }
+
+        .social-button:hover {
+          background: #FF854B;
+          color: #ffffff;
+          border-color: #FF854B;
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(255,133,75,0.25);
+        }
+
+        .stat-card {
+          background: #ffffff;
+          border: 1px solid #e5e7eb;
+          border-radius: 8px;
+          padding: 10px 14px;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          transition: all 0.2s ease;
+        }
+
+        .stat-card:hover {
+          border-color: #FF854B;
+          box-shadow: 0 2px 8px rgba(255,133,75,0.1);
+        }
+
+        .stat-card .label {
+          font-size: 0.65rem;
+          color: #9ca3af;
+          letter-spacing: 0.05em;
+        }
+
+        .stat-card .value {
+          font-size: 0.8rem;
+          color: #374151;
+          font-weight: 600;
+        }
+
+        .pulse-dot {
+          width: 8px;
+          height: 8px;
+          background: #FF854B;
+          border-radius: 50%;
+          box-shadow: 0 0 0 0 rgba(255,133,75,0.7);
+          animation: pulse-green 2s infinite;
+        }
+
+        @keyframes pulse-green {
+          0% {
+            transform: scale(0.95);
+            box-shadow: 0 0 0 0 rgba(255,133,75,0.7);
+          }
+          70% {
+            transform: scale(1);
+            box-shadow: 0 0 0 10px rgba(255,133,75,0);
+          }
+          100% {
+            transform: scale(0.95);
+            box-shadow: 0 0 0 0 rgba(255,133,75,0);
+          }
+        }
+
+        .footer-bottom {
+          padding: 20px 48px;
+          border-top: 1px solid #e5e7eb;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          background: #f3f4f6;
+        }
+
+        .bottom-links {
+          display: flex;
+          gap: 32px;
+        }
+
+        .bottom-link {
+          font-size: 0.7rem;
+          color: #9ca3af;
+          text-decoration: none;
+          transition: color 0.2s ease;
+          font-weight: 600;
+        }
+
+        .bottom-link:hover {
+          color: #FF854B;
+        }
+
+        .copyright {
+          font-size: 0.7rem;
+          color: #9ca3af;
+          font-weight: 600;
+        }
+
+        @media (max-width: 1024px) {
+          .footer-grid {
+            grid-template-columns: 1fr 1fr;
+            gap: 48px;
+            padding: 48px 32px;
+          }
+        }
+
+        @media (max-width: 640px) {
+          .footer-grid {
+            grid-template-columns: 1fr;
+            padding: 32px 24px;
+          }
+
+          .footer-bottom {
+            flex-direction: column;
+            gap: 20px;
+            padding: 24px;
+            text-align: center;
+          }
+
+          .bottom-links {
+            justify-content: center;
+          }
+        }
+      `}</style>
     </footer>
   );
 }

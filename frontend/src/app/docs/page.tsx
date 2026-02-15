@@ -1,19 +1,31 @@
 'use client';
 
 import React, { useState } from 'react';
+import {
+  Rocket,
+  Layout,
+  Zap,
+  Bot,
+  Wrench,
+  Coins,
+  BookOpen,
+  Lightbulb
+} from 'lucide-react';
+
 
 export default function DocsPage() {
   const [activeSection, setActiveSection] = useState('getting-started');
 
   const sections = [
-    { id: 'getting-started', title: 'Getting Started', icon: '🚀' },
-    { id: 'architecture', title: 'Architecture', icon: '🏗️' },
-    { id: 'x402-protocol', title: 'x402 Protocol', icon: '⚡' },
-    { id: 'agents', title: 'Building Agents', icon: '🤖' },
-    { id: 'tools', title: 'Creating Tools', icon: '🔧' },
-    { id: 'payments', title: 'Micropayments', icon: '💰' },
-    { id: 'api', title: 'API Reference', icon: '📚' },
-    { id: 'examples', title: 'Examples', icon: '💡' },
+    { id: 'getting-started', title: 'Getting Started', icon: <Rocket size={18} /> },
+    { id: 'architecture', title: 'Architecture', icon: <Layout size={18} /> },
+    { id: 'x402-protocol', title: 'x402 Protocol', icon: <Zap size={18} /> },
+    { id: 'agents', title: 'Building Agents', icon: <Bot size={18} /> },
+    { id: 'tools', title: 'Creating Tools', icon: <Wrench size={18} /> },
+    { id: 'payments', title: 'Micropayments', icon: <Coins size={18} /> },
+    { id: 'api', title: 'API Reference', icon: <BookOpen size={18} /> },
+    { id: 'examples', title: 'Examples', icon: <Lightbulb size={18} /> },
+
   ];
 
   const content: Record<string, any> = {
@@ -272,10 +284,10 @@ await payment.waitForConfirmation(txId);
   return (
     <div style={{ padding: '40px 0' }}>
       <div style={{ marginBottom: 40 }}>
-        <h1 className="mono" style={{ fontSize: '2.5rem', fontWeight: 800, marginBottom: 12, color: '#ffffff' }}>
+        <h1 className="mono" style={{ fontSize: '2.5rem', fontWeight: 800, marginBottom: 12, color: 'var(--text-primary)' }}>
           Documentation
         </h1>
-        <p style={{ fontSize: '1.1rem', color: '#a1a1aa', maxWidth: 700 }}>
+        <p style={{ fontSize: '1.1rem', color: 'var(--text-secondary)', maxWidth: 700 }}>
           Learn how to build, deploy, and manage autonomous agents on the SYNERGI platform.
         </p>
       </div>
@@ -287,7 +299,7 @@ await payment.waitForConfirmation(txId);
             <div className="mono" style={{
               fontSize: '0.75rem',
               fontWeight: 700,
-              color: '#71717a',
+              color: 'var(--text-muted)',
               marginBottom: 12,
               letterSpacing: '0.05em',
             }}>
@@ -303,9 +315,9 @@ await payment.waitForConfirmation(txId);
                     borderRadius: 'var(--radius-sm)',
                     border: 'none',
                     backgroundColor: activeSection === section.id
-                      ? 'rgba(168, 85, 247, 0.15)'
+                      ? 'var(--accent-light)'
                       : 'transparent',
-                    color: activeSection === section.id ? '#ffffff' : '#a1a1aa',
+                    color: activeSection === section.id ? 'var(--accent-primary)' : 'var(--text-secondary)',
                     fontSize: '0.9rem',
                     textAlign: 'left',
                     cursor: 'pointer',
@@ -316,18 +328,25 @@ await payment.waitForConfirmation(txId);
                   }}
                   onMouseEnter={(e) => {
                     if (activeSection !== section.id) {
-                      e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.05)';
-                      e.currentTarget.style.color = '#ffffff';
+                      e.currentTarget.style.backgroundColor = 'var(--bg-secondary)';
+                      e.currentTarget.style.color = 'var(--text-primary)';
                     }
                   }}
                   onMouseLeave={(e) => {
                     if (activeSection !== section.id) {
                       e.currentTarget.style.backgroundColor = 'transparent';
-                      e.currentTarget.style.color = '#a1a1aa';
+                      e.currentTarget.style.color = 'var(--text-secondary)';
                     }
                   }}
                 >
-                  <span style={{ fontSize: '1.2rem' }}>{section.icon}</span>
+                  <span style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    color: activeSection === section.id ? 'var(--accent-primary)' : 'var(--text-muted)'
+                  }}>
+                    {section.icon}
+                  </span>
+
                   <span>{section.title}</span>
                 </button>
               ))}
@@ -341,14 +360,14 @@ await payment.waitForConfirmation(txId);
             fontSize: '2rem',
             fontWeight: 800,
             marginBottom: 24,
-            color: '#ffffff',
+            color: 'var(--text-primary)',
           }}>
             {currentContent.title}
           </h2>
           <div style={{
             fontSize: '1rem',
             lineHeight: 1.8,
-            color: '#d4d4d8',
+            color: 'var(--text-secondary)',
           }}>
             {currentContent.content.split('\n').map((line: string, i: number) => {
               if (line.startsWith('## ')) {
@@ -358,7 +377,7 @@ await payment.waitForConfirmation(txId);
                     fontWeight: 700,
                     marginTop: 32,
                     marginBottom: 16,
-                    color: '#ffffff',
+                    color: 'var(--text-primary)',
                   }}>
                     {line.replace('## ', '')}
                   </h3>
@@ -371,7 +390,7 @@ await payment.waitForConfirmation(txId);
                     fontWeight: 600,
                     marginTop: 24,
                     marginBottom: 12,
-                    color: '#c084fc',
+                    color: 'var(--accent-primary)',
                   }}>
                     {line.replace('### ', '')}
                   </h4>
@@ -382,14 +401,14 @@ await payment.waitForConfirmation(txId);
               }
               if (line.startsWith('- ')) {
                 return (
-                  <li key={i} style={{ marginLeft: 20, marginBottom: 8, color: '#a1a1aa' }}>
+                  <li key={i} style={{ marginLeft: 20, marginBottom: 8, color: 'var(--text-secondary)' }}>
                     {line.replace('- ', '')}
                   </li>
                 );
               }
               if (line.match(/^\d+\. /)) {
                 return (
-                  <li key={i} style={{ marginLeft: 20, marginBottom: 8, color: '#a1a1aa' }}>
+                  <li key={i} style={{ marginLeft: 20, marginBottom: 8, color: 'var(--text-secondary)' }}>
                     {line.replace(/^\d+\. /, '')}
                   </li>
                 );
@@ -401,11 +420,12 @@ await payment.waitForConfirmation(txId);
                     {parts.map((part, j) =>
                       j % 2 === 1 ? (
                         <code key={j} className="mono" style={{
-                          backgroundColor: 'rgba(168, 85, 247, 0.1)',
+                          backgroundColor: 'var(--bg-secondary)',
                           padding: '2px 6px',
                           borderRadius: 4,
                           fontSize: '0.9em',
-                          color: '#c084fc',
+                          color: 'var(--accent-primary)',
+                          border: '1px solid var(--border-subtle)',
                         }}>
                           {part}
                         </code>
