@@ -60,3 +60,4 @@ node_modules
 # Environment
 azure-cli-env/
 promote/
+promote/*

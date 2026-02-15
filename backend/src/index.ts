@@ -716,7 +716,7 @@ app.get('/api/registry', (req: Request, res: Response) => {
     agents,
     count: agents.length,
     categories: [...new Set(agentRegistry.map(a => a.category))],
-    contractAddress: 'ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM.agent-registry',
+    contractAddress: process.env.CONTRACT_ADDRESS || 'ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM.agent-registry',
     network: NETWORK,
   });
 });
