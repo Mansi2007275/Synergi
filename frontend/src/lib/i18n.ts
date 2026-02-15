@@ -59,7 +59,8 @@ export const translations = {
     dashboard: "Dashboard",
     agents: "Agents",
     tools: "Tools",
-    docs: "Docs"
+    docs: "Docs",
+    connectionError: "Unable to connect to Agent Registry"
   },
   hi: {
     heroTitle: 'एजेंट-टू-एजेंट',
@@ -119,7 +120,8 @@ export const translations = {
     dashboard: "डैशबोर्ड",
     agents: "एजेंट",
     tools: "उपकरण",
-    docs: "दस्तावेज़"
+    docs: "दस्तावेज़",
+    connectionError: "एजेंट रजिस्ट्री से कनेक्ट करने में असमर्थ"
   },
   es: {
     heroTitle: 'AGENTE-A-AGENTE',
@@ -179,6 +181,7 @@ export const translations = {
     dashboard: "Tablero",
     agents: "Agentes",
     tools: "Herramientas",
-    docs: "Docs"
+    docs: "Docs",
+    connectionError: "No se puede conectar al Registro de Agentes"
   }
 };

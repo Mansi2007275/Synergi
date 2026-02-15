@@ -52,9 +52,10 @@ export default function ToolCatalog() {
     <div style={{
       marginTop: 24,
       padding: 24,
-      border: '1px solid var(--border-strong)',
+      border: 'var(--border-width) solid var(--border-strong)',
       borderRadius: 'var(--radius-md)',
-      background: 'var(--bg-secondary)'
+      background: 'var(--bg-secondary)',
+      boxShadow: 'var(--shadow-sm)'
     }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
         <h3 className="mono" style={{ fontSize: '1rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -80,50 +81,52 @@ function AgentCard({ tool }: { tool: Tool }) {
   const color = getAgentColor(tool.id);
 
   return (
-    <div style={{
-      background: 'var(--bg-tertiary)',
-      border: '1px solid var(--border-strong)',
-      borderRadius: 'var(--radius-sm)',
-      padding: 20,
-      cursor: 'pointer',
-      transition: 'all 0.1s',
-      position: 'relative',
-      display: 'flex',
-      flexDirection: 'column',
-      boxShadow: '0 2px 8px rgba(0,0,0,0.06)'
-    }}
-    onMouseEnter={e => {
-        e.currentTarget.style.transform = 'translateY(-2px)';
-        e.currentTarget.style.boxShadow = `0 6px 16px ${color}25`;
-        e.currentTarget.style.borderColor = color;
-    }}
-    onMouseLeave={e => {
-        e.currentTarget.style.transform = 'none';
-        e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.06)';
-        e.currentTarget.style.borderColor = 'var(--border-strong)';
-    }}
+    <div
+      className="agent-card"
+      style={{
+        background: 'var(--bg-primary)',
+        border: 'var(--border-width) solid var(--border-strong)',
+        borderRadius: 'var(--radius-sm)',
+        padding: 20,
+        cursor: 'pointer',
+        transition: 'all 0.1s',
+        position: 'relative',
+        display: 'flex',
+        flexDirection: 'column',
+        boxShadow: 'var(--shadow-sm)'
+      }}
+      onMouseEnter={e => {
+          e.currentTarget.style.transform = 'translate(-2px, -2px)';
+          e.currentTarget.style.boxShadow = 'var(--shadow-md)';
+          e.currentTarget.style.borderColor = color;
+      }}
+      onMouseLeave={e => {
+          e.currentTarget.style.transform = 'none';
+          e.currentTarget.style.boxShadow = 'var(--shadow-sm)';
+          e.currentTarget.style.borderColor = 'var(--border-strong)';
+      }}
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <div style={{
-            width: 40, height: 40,
+            width: 44, height: 44,
             background: `${color}15`,
-            border: `1px solid ${color}`,
+            border: `var(--border-width) solid ${color}`,
             borderRadius: 'var(--radius-sm)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
-            color: color
+            boxShadow: '2px 2px 0 0 rgba(0,0,0,0.1)',
+            color: 'var(--text-primary)'
           }}>
-            <Icon size={20} />
+            <Icon size={24} color={color} strokeWidth={2.5} />
           </div>
           <div>
-             <h4 style={{ fontSize: '1rem', fontWeight: 700, margin: 0, textTransform: 'uppercase', letterSpacing: '-0.02em' }}>{tool.name}</h4>
-             <span className="mono" style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{tool.category}</span>
+             <h4 style={{ fontSize: '1rem', fontWeight: 800, margin: 0, textTransform: 'uppercase', letterSpacing: '-0.02em', color: 'var(--text-primary)' }}>{tool.name}</h4>
+             <span className="mono" style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: 600 }}>{tool.category}</span>
           </div>
         </div>
       </div>
 
-      <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.5, marginBottom: 20, flex: 1 }}>
+      <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.5, marginBottom: 20, flex: 1, fontWeight: 500 }}>
         {tool.description}
       </p>
 
@@ -139,11 +142,11 @@ function AgentCard({ tool }: { tool: Tool }) {
             <div style={{
               fontSize: '0.65rem',
               fontWeight: 800,
-              background: 'var(--accent-success)',
+              background: 'var(--info)',
               color: '#fff',
               padding: '2px 6px',
               borderRadius: 'var(--radius-sm)',
-              border: '1px solid var(--accent-success)'
+              border: '1px solid var(--border-strong)'
             }}>
               MCP
             </div>
@@ -152,18 +155,18 @@ function AgentCard({ tool }: { tool: Tool }) {
             <div style={{
               fontSize: '0.65rem',
               fontWeight: 800,
-              background: 'var(--accent-secondary)',
+              background: 'var(--accent-500)',
               color: '#fff',
               padding: '2px 6px',
               borderRadius: 'var(--radius-sm)',
-              border: '1px solid var(--accent-secondary)'
+              border: '1px solid var(--border-strong)'
             }}>
               A2A
             </div>
           )}
         </div>
 
-        <div className="mono" style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+        <div className="mono" style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--text-primary)' }}>
            {Number(tool.price) > 0 ? `${tool.price} ${tool.token}` : 'FREE'}
         </div>
       </div>

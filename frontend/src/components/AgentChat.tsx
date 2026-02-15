@@ -114,13 +114,37 @@ export default function AgentChat({ onNewPayments, onProtocolTrace }: Params) {
   useEffect(() => {
     let sse: EventSource | null = null;
     let reconnectTimeout: NodeJS.Timeout;
+    let reconnectAttempts = 0;
+    const MAX_RECONNECT_ATTEMPTS = 5;
+    let hasShownConnectionError = false;
+    let isConnected = false;
 
     const connect = () => {
       if (sse) sse.close();
 
-      const sseUrl = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/agent/events?clientId=${clientId.current}`;
+      if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
+        console.warn(`SSE: Max reconnect attempts (${MAX_RECONNECT_ATTEMPTS}) reached. Stopping.`);
+        if (!hasShownConnectionError) {
+          hasShownConnectionError = true;
+          setMessages(prev => [...prev, {
+            role: 'system',
+            content: '**Backend offline.** Start the backend server (`cd backend && npm run dev`) then refresh.',
+            depth: 0
+          }]);
+        }
+        return;
+      }
+
+      const sseUrl = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4002'}/api/agent/events?clientId=${clientId.current}`;
       sse = new EventSource(sseUrl);
       eventSourceRef.current = sse;
+
+      sse.onopen = () => {
+        console.log('SSE connected');
+        reconnectAttempts = 0;
+        isConnected = true;
+        hasShownConnectionError = false;
+      };
 
       // 1. Step Updates (Protocol Trace)
       sse.addEventListener('step', (event) => {
@@ -134,7 +158,7 @@ export default function AgentChat({ onNewPayments, onProtocolTrace }: Params) {
       sse.addEventListener('thought', (event) => {
         try {
           const data = JSON.parse(event.data);
-          onProtocolTrace(data); // Also log thoughts to trace
+          onProtocolTrace(data);
 
           setMessages(prev => {
             const lastMsg = prev[prev.length - 1];
@@ -174,31 +198,36 @@ export default function AgentChat({ onNewPayments, onProtocolTrace }: Params) {
       });
 
       // 5. Completion
-      sse.addEventListener('done', (event) => {
+      sse.addEventListener('done', () => {
         setAgentStatus('idle');
         setIsProcessing(false);
       });
 
-      // 6. Errors
-      sse.addEventListener('error', (event) => {
-         try {
-           const data = (event as any).data ? JSON.parse((event as any).data) : { content: 'Connection stream interrupted' };
-           setMessages(prev => [...prev, { role: 'system', content: `**Error:** ${data.content || data.message}`, depth: 0 }]);
-         } catch (e) {
-           console.warn('SSE Error Event:', e);
-         }
+      // 6. Connection error — only handle via onerror, NOT the 'error' event listener
+      //    The EventSource 'error' event fires on EVERY connection failure (no data),
+      //    so we must NOT add messages here to avoid spam.
+
+      sse.onerror = () => {
+         isConnected = false;
+         if (sse) sse.close();
+
          setAgentStatus('idle');
          setIsProcessing(false);
-      });
 
-      sse.onerror = (err) => {
-         console.error('SSE Connection Error:', err);
-         if (sse?.readyState === EventSource.CLOSED) {
-           setAgentStatus('idle');
-           setIsProcessing(false);
+         reconnectAttempts++;
+         const backoff = Math.min(3000 * Math.pow(1.5, reconnectAttempts - 1), 15000);
+         console.warn(`SSE disconnected. Reconnect attempt ${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS} in ${Math.round(backoff)}ms`);
+
+         if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS && !hasShownConnectionError) {
+           hasShownConnectionError = true;
+           setMessages(prev => [...prev, {
+             role: 'system',
+             content: '**Connection lost.** Backend may be offline. Start with `cd backend && npm run dev`, then refresh.',
+             depth: 0
+           }]);
          }
-         // Reconnect
-         reconnectTimeout = setTimeout(connect, 3000);
+
+         reconnectTimeout = setTimeout(connect, backoff);
       };
     };
 
@@ -215,7 +244,8 @@ export default function AgentChat({ onNewPayments, onProtocolTrace }: Params) {
       if (sse) sse.close();
       clearTimeout(reconnectTimeout);
     };
-  }, [onNewPayments, onProtocolTrace]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -236,7 +266,7 @@ export default function AgentChat({ onNewPayments, onProtocolTrace }: Params) {
     setAgentStatus('planning');
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/agent/query`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4002'}/api/agent/query`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query: userMsg, clientId: clientId.current })

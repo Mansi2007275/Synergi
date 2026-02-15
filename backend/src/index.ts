@@ -58,7 +58,7 @@ import { EXTERNAL_AGENTS, callExternalAgent } from './universal-adapter';
 
 dotenv.config();
 
-const PORT = parseInt(process.env.PORT || '3001', 10);
+const PORT = parseInt(process.env.PORT || '4002', 10);
 const HOST = process.env.HOST || '0.0.0.0';
 const NETWORK = (process.env.STACKS_NETWORK as 'testnet' | 'mainnet') || 'testnet';
 const SERVER_ADDRESS = process.env.SERVER_ADDRESS || 'ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM';

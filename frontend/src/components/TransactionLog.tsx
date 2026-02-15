@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useI18n } from '@/lib/LanguageContext';
 
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4002';
 
 interface Payment {
   id: string;

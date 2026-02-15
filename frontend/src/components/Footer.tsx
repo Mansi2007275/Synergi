@@ -24,15 +24,16 @@ export default function Footer() {
   return (
     <footer style={{
       marginTop: 80,
-      borderTop: '1px solid #e5e7eb',
-      background: '#f8f9fa',
+      borderTop: 'var(--border-width) solid var(--border-strong)',
+      background: 'var(--bg-secondary)',
       position: 'relative',
       overflow: 'hidden',
     }}>
-      {/* Subtle Top Accent */}
+      {/* Accent Line */}
       <div style={{
-        height: 3,
-        background: 'linear-gradient(90deg, #FF854B, #f59e0b, #FF854B)',
+        height: 4,
+        background: 'var(--accent-500)',
+        borderBottom: 'var(--border-width) solid var(--border-strong)',
       }} />
 
       <div className="footer-grid">
@@ -43,12 +44,18 @@ export default function Footer() {
               <img
                 src="/logo.png"
                 alt="SYNERGI"
-                style={{ width: 40, height: 40, borderRadius: 8, border: '1px solid #e5e7eb' }}
+                style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: 'var(--radius-sm)',
+                  border: 'var(--border-width) solid var(--border-strong)',
+                  background: 'white'
+                }}
               />
               <span className="mono" style={{
                 fontWeight: 900,
-                fontSize: '1.3rem',
-                color: '#111827',
+                fontSize: '1.4rem',
+                color: 'var(--text-primary)',
                 letterSpacing: '-0.04em',
                 textTransform: 'uppercase'
               }}>
@@ -57,12 +64,13 @@ export default function Footer() {
             </div>
           </Link>
           <p style={{
-            fontSize: '0.85rem',
-            color: '#6b7280',
+            fontSize: '0.9rem',
+            color: 'var(--text-secondary)',
             lineHeight: 1.6,
             marginBottom: 24,
             maxWidth: '300px',
-            fontFamily: 'var(--font-mono)'
+            fontFamily: 'var(--font-mono)',
+            fontWeight: 500,
           }}>
             The autonomous layer for the agent economy. Secure, trustless A2A micropayments on Stacks.
           </p>
@@ -79,7 +87,7 @@ export default function Footer() {
                 rel="noopener noreferrer"
                 className="social-button"
               >
-                <social.icon size={18} />
+                <social.icon size={20} />
               </a>
             ))}
           </div>
@@ -129,7 +137,7 @@ export default function Footer() {
               <span className="label mono">SYSTEM</span>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <div className="pulse-dot" />
-                <span className="value mono" style={{ color: '#16a34a' }}>OPERATIONAL</span>
+                <span className="value mono" style={{ color: 'var(--success)' }}>OPERATIONAL</span>
               </div>
             </div>
           </div>
@@ -143,7 +151,7 @@ export default function Footer() {
         </div>
         <div className="bottom-links">
           <Link href="/privacy" className="mono bottom-link">PRIVACY</Link>
-          <span style={{ color: '#e5e7eb' }}>|</span>
+          <span style={{ color: 'var(--border-strong)' }}>|</span>
           <Link href="/terms" className="mono bottom-link">TERMS</Link>
         </div>
       </div>
@@ -159,133 +167,129 @@ export default function Footer() {
         }
 
         .section-title {
-          font-size: 0.75rem;
+          font-size: 0.85rem;
           font-weight: 800;
-          margin-bottom: 20px;
-          letter-spacing: 0.08em;
+          margin-bottom: 24px;
+          letter-spacing: 0.05em;
           text-transform: uppercase;
-          color: #111827;
-          border-left: 3px solid #FF854B;
-          padding-left: 10px;
+          color: var(--text-primary);
+          border-left: 4px solid var(--accent-500);
+          padding-left: 12px;
         }
 
         .links {
           display: flex;
           flex-direction: column;
-          gap: 12px;
+          gap: 14px;
         }
 
         .link {
-          font-size: 0.85rem;
-          color: #6b7280;
+          font-size: 0.9rem;
+          color: var(--text-secondary);
           text-decoration: none;
-          transition: all 0.2s ease;
-          font-weight: 500;
+          transition: all 0.1s ease;
+          font-weight: 600;
           position: relative;
           width: fit-content;
+          font-family: var(--font-mono);
         }
 
         .link:hover {
-          color: #111827;
-          padding-left: 6px;
+          color: var(--text-primary);
+          transform: translateX(4px);
         }
 
         .link::before {
           content: '>';
           position: absolute;
-          left: -10px;
+          left: -12px;
           opacity: 0;
-          transition: all 0.2s ease;
-          color: #FF854B;
-          font-family: monospace;
+          transition: all 0.1s ease;
+          color: var(--accent-500);
+          font-weight: 800;
         }
 
         .link:hover::before {
           opacity: 1;
-          left: 0;
+          left: -16px;
         }
 
         .social-button {
-          width: 40px;
-          height: 40px;
+          width: 44px;
+          height: 44px;
           display: flex;
           align-items: center;
           justify-content: center;
           background: #ffffff;
-          border: 1px solid #e5e7eb;
-          border-radius: 10px;
-          color: #6b7280;
-          transition: all 0.2s ease;
+          border: var(--border-width) solid var(--border-strong);
+          border-radius: var(--radius-sm);
+          color: var(--text-primary);
+          transition: all 0.1s ease;
           text-decoration: none;
+          box-shadow: var(--shadow-sm);
         }
 
         .social-button:hover {
-          background: #FF854B;
+          background: var(--accent-500);
           color: #ffffff;
-          border-color: #FF854B;
-          transform: translateY(-2px);
-          box-shadow: 0 4px 12px rgba(255,133,75,0.25);
+          border-color: var(--border-strong);
+          transform: translate(-2px, -2px);
+          box-shadow: var(--shadow-md);
         }
 
         .stat-card {
           background: #ffffff;
-          border: 1px solid #e5e7eb;
-          border-radius: 8px;
-          padding: 10px 14px;
+          border: var(--border-width) solid var(--border-strong);
+          border-radius: var(--radius-sm);
+          padding: 12px 16px;
           display: flex;
           justify-content: space-between;
           align-items: center;
-          transition: all 0.2s ease;
+          transition: all 0.1s ease;
+          box-shadow: var(--shadow-sm);
         }
 
         .stat-card:hover {
-          border-color: #FF854B;
-          box-shadow: 0 2px 8px rgba(255,133,75,0.1);
+          transform: translate(-2px, -2px);
+          box-shadow: var(--shadow-md);
+          border-color: var(--accent-500);
         }
 
         .stat-card .label {
-          font-size: 0.65rem;
-          color: #9ca3af;
+          font-size: 0.7rem;
+          color: var(--text-secondary);
           letter-spacing: 0.05em;
+          font-weight: 700;
         }
 
         .stat-card .value {
-          font-size: 0.8rem;
-          color: #374151;
-          font-weight: 600;
+          font-size: 0.85rem;
+          color: var(--text-primary);
+          font-weight: 700;
         }
 
         .pulse-dot {
           width: 8px;
           height: 8px;
-          background: #FF854B;
+          background: var(--success);
+          border: 1px solid var(--border-strong);
           border-radius: 50%;
-          box-shadow: 0 0 0 0 rgba(255,133,75,0.7);
-          animation: pulse-green 2s infinite;
+          animation: pulse-green 1.5s infinite;
         }
 
         @keyframes pulse-green {
-          0% {
-            transform: scale(0.95);
-            box-shadow: 0 0 0 0 rgba(255,133,75,0.7);
-          }
-          70% {
-            transform: scale(1);
-            box-shadow: 0 0 0 10px rgba(255,133,75,0);
-          }
-          100% {
-            transform: scale(0.95);
-            box-shadow: 0 0 0 0 rgba(255,133,75,0);
-          }
+          0% { transform: scale(0.95); opacity: 1; }
+          50% { transform: scale(1.1); opacity: 0.8; }
+          100% { transform: scale(0.95); opacity: 1; }
         }
 
         .footer-bottom {
-          padding: 20px 48px;
-          border-top: 1px solid #e5e7eb;
+          padding: 24px 48px;
+          border-top: var(--border-width) solid var(--border-strong);
           display: flex;
           justify-content: space-between;
           align-items: center;
-          background: #f3f4f6;
+          background: var(--bg-primary);
         }
 
         .bottom-links {
@@ -294,21 +298,23 @@ export default function Footer() {
         }
 
         .bottom-link {
-          font-size: 0.7rem;
-          color: #9ca3af;
+          font-size: 0.75rem;
+          color: var(--text-secondary);
           text-decoration: none;
-          transition: color 0.2s ease;
-          font-weight: 600;
+          transition: color 0.1s ease;
+          font-weight: 700;
         }
 
         .bottom-link:hover {
-          color: #FF854B;
+          color: var(--accent-500);
+          text-decoration: underline;
+          text-decoration-thickness: 2px;
         }
 
         .copyright {
-          font-size: 0.7rem;
-          color: #9ca3af;
-          font-weight: 600;
+          font-size: 0.75rem;
+          color: var(--text-secondary);
+          font-weight: 700;
         }
 
         @media (max-width: 1024px) {
