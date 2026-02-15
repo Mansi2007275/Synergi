@@ -23,7 +23,7 @@ Since Azure is blocked, use this "Hackathon Survival" stack. It allows for **rea
     - **Runtime**: `Node`
     - **Build Command**: `npm install && npm run build`
       - (Check `backend/package.json`: if `build` script is `tsc`, ensure typescript is installed or just `npm install`) -> _Correction_: Use `npm install`
-    - **Start Command**: `npm start`
+    - **Start Command**: `npm run start:prod`
     - **Instance Type**: `Free`
 6.  **Environment Variables**:
     - Copy keys from `backend/.env`:
