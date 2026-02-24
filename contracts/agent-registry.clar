@@ -1,17 +1,9 @@
 ;; ═══════════════════════════════════════════════════════════════════════════
-;; SYNERGI Agent Registry v2.0
+;; SYNERGI Agent Registry v2.1 (Nakamoto / Clarity 3 Compatible)
 ;; ═══════════════════════════════════════════════════════════════════════════
 ;; A decentralized marketplace for autonomous AI agents on Stacks.
 ;; Implements reputation, recursive hiring, on-chain settlement,
 ;; and dynamic pricing for machine-to-machine (A2A) commerce.
-;;
-;; Key Features:
-;;   - Agent registration with service categories
-;;   - Reputation system (increases on successful jobs)
-;;   - Job tracking with escrow-like settlement
-;;   - Recursive hiring: agents can hire other agents
-;;   - Dynamic pricing based on reputation + demand
-;;   - On-chain discovery for cheapest/most reputable workers
 ;; ═══════════════════════════════════════════════════════════════════════════
 
 ;; ── Constants ──────────────────────────────────────────────────────────────
@@ -171,11 +163,14 @@
         ((caller tx-sender)
          (worker-profile (unwrap! (map-get? Agents worker) err-agent-not-found))
          (amount (get price-stx worker-profile))
-         (job-id (var-get next-job-id)))
+         (job-id (var-get next-job-id))
+         ;; Nakamoto/C3: as-contract sets contract-caller, tx-sender is user.
+         ;; contract-caller inside as-contract is the contract principal.
+         (contract-addr (as-contract contract-caller)))
         ;; Cannot hire yourself
         (asserts! (not (is-eq caller worker)) err-self-hire)
         ;; Transfer payment from requester to CONTRACT (escrow)
-        (try! (stx-transfer? amount caller (as-contract tx-sender)))
+        (try! (stx-transfer? amount caller contract-addr))
         ;; Record the escrow
         (map-set Escrow job-id {
             amount: amount,
@@ -217,7 +212,8 @@
         ;; Escrow must not already be settled
         (asserts! (not (get settled escrow)) err-job-already-settled)
         ;; Release escrow: transfer from contract to worker
-        (try! (as-contract (stx-transfer? (get amount escrow) tx-sender worker)))
+        ;; Nakamoto/C3: as-contract changes context so we can act as the contract
+        (try! (as-contract (stx-transfer? (get amount escrow) contract-caller worker)))
         ;; Mark escrow as settled
         (map-set Escrow job-id (merge escrow { settled: true }))
         ;; Update job status
@@ -254,7 +250,7 @@
         (asserts! (is-eq (get status job) "pending") err-job-already-complete)
         (asserts! (not (get settled escrow)) err-job-already-settled)
         ;; Refund escrow to requester
-        (try! (as-contract (stx-transfer? (get amount escrow) tx-sender (get requester escrow))))
+        (try! (as-contract (stx-transfer? (get amount escrow) contract-caller (get requester escrow))))
         ;; Mark escrow settled
         (map-set Escrow job-id (merge escrow { settled: true }))
         ;; Update job
@@ -289,7 +285,7 @@
         ;; Deadline must have passed
         (asserts! (>= block-height (get deadline escrow)) err-deadline-not-passed)
         ;; Refund to requester
-        (try! (as-contract (stx-transfer? (get amount escrow) tx-sender (get requester escrow))))
+        (try! (as-contract (stx-transfer? (get amount escrow) contract-caller (get requester escrow))))
         ;; Mark settled and job failed
         (map-set Escrow job-id (merge escrow { settled: true }))
         (map-set Jobs job-id (merge job {
@@ -352,7 +348,6 @@
 )
 
 ;; Get dynamic price: base + reputation premium
-;; Higher reputation = more demand = higher price
 (define-read-only (get-dynamic-price (agent principal))
     (let
         ((profile (unwrap! (map-get? Agents agent) (err u404)))
@@ -396,7 +391,6 @@
          (rep (get reputation profile))
          (price (get price-stx profile)))
         ;; Score = (reputation * 1000) / price
-        ;; Higher is better value
         (ok (if (> price u0) (/ (* rep u1000) price) u0))
     )
 )
@@ -420,10 +414,8 @@
                             )
                         false
                     )
-                ;; Leader no longer exists, replace
                 (map-set CategoryLeader category candidate)
             )
-        ;; No leader yet
         (map-set CategoryLeader category candidate)
     )
 )

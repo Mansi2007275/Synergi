@@ -1,18 +1,4 @@
-import React from 'react';
-import {
-  Cloud,
-  FileText,
-  Divide,
-  Smile,
-  Terminal,
-  Search,
-  Globe,
-  Database,
-  ShieldCheck,
-  Zap,
-  Cpu,
-  type LucideIcon
-} from 'lucide-react';
+import { Cloud, FileText, Divide, Smile, Terminal, Search, Globe, Database, ShieldCheck, Zap, Cpu, type LucideIcon } from 'lucide-react';
 
 export const AgentIconMap: Record<string, LucideIcon> = {
   weather: Cloud,

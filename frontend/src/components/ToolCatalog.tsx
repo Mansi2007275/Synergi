@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Server, Cpu, Globe, ArrowRight, ShieldCheck, Box } from 'lucide-react';
+import { Globe, Box } from 'lucide-react';
 import { getAgentIcon, getAgentColor } from './AgentIcons';
 import { useI18n } from '@/lib/LanguageContext';
 
@@ -22,7 +22,7 @@ export default function ToolCatalog() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4002'}/api/tools`)
+    fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://synergi.onrender.com'}/api/tools`)
       .then(res => res.json())
       .then(data => {
         const formatted = data.map((t: any) => ({
@@ -77,6 +77,7 @@ export default function ToolCatalog() {
 }
 
 function AgentCard({ tool }: { tool: Tool }) {
+
   const Icon = getAgentIcon(tool.id);
   const color = getAgentColor(tool.id);
 
@@ -117,6 +118,7 @@ function AgentCard({ tool }: { tool: Tool }) {
             boxShadow: '2px 2px 0 0 rgba(0,0,0,0.1)',
             color: 'var(--text-primary)'
           }}>
+            {/* eslint-disable-next-line */}
             <Icon size={24} color={color} strokeWidth={2.5} />
           </div>
           <div>

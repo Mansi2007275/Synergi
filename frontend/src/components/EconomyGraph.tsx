@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4002';
+const API = process.env.NEXT_PUBLIC_API_URL || 'https://synergi.onrender.com';
 
 interface PaymentNode {
   id: string;
