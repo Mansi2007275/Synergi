@@ -98,10 +98,10 @@ export default function ToolsPage() {
   return (
     <div style={{ padding: '40px 0' }}>
       <div style={{ marginBottom: 40 }}>
-        <h1 className="mono" style={{ fontSize: '2.5rem', fontWeight: 800, marginBottom: 12, color: '#ffffff' }}>
+        <h1 className="mono" style={{ fontSize: '2.5rem', fontWeight: 800, marginBottom: 12, color: '#000000' }}>
           Tool Catalog
         </h1>
-        <p style={{ fontSize: '1.1rem', color: '#a1a1aa', maxWidth: 700 }}>
+        <p style={{ fontSize: '1.1rem', color: '#333333', maxWidth: 700 }}>
           Browse and integrate powerful tools into your agents. Pay-per-use with instant x402 micropayments.
         </p>
       </div>
@@ -127,7 +127,7 @@ export default function ToolsPage() {
               backgroundColor: selectedCategory === category
                 ? 'rgba(168, 85, 247, 0.15)'
                 : 'transparent',
-              color: selectedCategory === category ? '#ffffff' : '#a1a1aa',
+              color: selectedCategory === category ? '#000000' : '#4b5563',
               fontSize: '0.85rem',
               fontWeight: 600,
               cursor: 'pointer',
@@ -137,13 +137,13 @@ export default function ToolsPage() {
             onMouseEnter={(e) => {
               if (selectedCategory !== category) {
                 e.currentTarget.style.borderColor = 'rgba(168, 85, 247, 0.3)';
-                e.currentTarget.style.color = '#ffffff';
+                e.currentTarget.style.color = '#000000';
               }
             }}
             onMouseLeave={(e) => {
               if (selectedCategory !== category) {
                 e.currentTarget.style.borderColor = 'rgba(168, 85, 247, 0.2)';
-                e.currentTarget.style.color = '#a1a1aa';
+                e.currentTarget.style.color = '#4b5563';
               }
             }}
           >
@@ -175,7 +175,7 @@ export default function ToolsPage() {
           >
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
-                <h3 className="mono" style={{ fontSize: '1.3rem', fontWeight: 700, color: '#ffffff' }}>
+                <h3 className="mono" style={{ fontSize: '1.3rem', fontWeight: 700, color: '#000000' }}>
                   {tool.name}
                 </h3>
                 <span className="badge" style={{
@@ -186,7 +186,7 @@ export default function ToolsPage() {
                   {tool.category}
                 </span>
               </div>
-              <p style={{ fontSize: '0.95rem', color: '#a1a1aa', marginBottom: 12 }}>
+              <p style={{ fontSize: '0.95rem', color: '#333333', marginBottom: 12 }}>
                 {tool.description}
               </p>
               <div style={{ display: 'flex', gap: 24, alignItems: 'center' }}>
@@ -194,7 +194,7 @@ export default function ToolsPage() {
                   <span style={{ fontSize: '0.75rem', color: '#71717a' }}>Endpoint: </span>
                   <code className="mono" style={{
                     fontSize: '0.85rem',
-                    color: '#c084fc',
+                    color: '#9333ea',
                     backgroundColor: 'rgba(168, 85, 247, 0.1)',
                     padding: '2px 8px',
                     borderRadius: 4,
@@ -204,7 +204,7 @@ export default function ToolsPage() {
                 </div>
                 <div>
                   <span style={{ fontSize: '0.75rem', color: '#71717a' }}>Total calls: </span>
-                  <span className="mono" style={{ fontSize: '0.85rem', color: '#ffffff', fontWeight: 600 }}>
+                  <span className="mono" style={{ fontSize: '0.85rem', color: '#000000', fontWeight: 600 }}>
                     {tool.calls.toLocaleString()}
                   </span>
                 </div>
@@ -214,7 +214,7 @@ export default function ToolsPage() {
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 12 }}>
               <div style={{ textAlign: 'right' }}>
                 <div style={{ fontSize: '0.75rem', color: '#71717a', marginBottom: 4 }}>Price per call</div>
-                <div className="mono" style={{ fontSize: '1.3rem', fontWeight: 800, color: '#34d399' }}>
+                <div className="mono" style={{ fontSize: '1.3rem', fontWeight: 800, color: '#059669' }}>
                   {tool.price}
                 </div>
               </div>
