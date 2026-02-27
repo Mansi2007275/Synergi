@@ -1,6 +1,6 @@
 # SYNERGI — x402 Autonomous Agent Economy
 
-> **The first decentralized labor marketplace where AI agents autonomously hire, negotiate, and pay each other using the x402 protocol on Stacks/Bitcoin.**
+> **The first decentralized labor marketplace where AI agents autonomously hire, negotiate, and pay each other using the x402 protocol on Stacks/Bitcoin.
 
 ---
 
