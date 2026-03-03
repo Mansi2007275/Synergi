@@ -1,9 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'standalone',
-  env: {
-    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'https://synergi.onrender.com',
-  },
+  reactStrictMode: true,
 };
 
-export default nextConfig;
+module.exports = nextConfig;

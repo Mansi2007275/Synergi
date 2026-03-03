@@ -88,13 +88,7 @@ const SubAgentTree = ({ hires, depth = 0 }: { hires: any[], depth?: number }) =>
 export default function AgentChat({ onNewPayments, onProtocolTrace }: Params) {
   const { language, t } = useI18n();
   const [query, setQuery] = useState('');
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      role: 'system',
-      content: "**System Initialized.** Universal Agent Adapter ready. Connects to `Gemini 2.0 Flash` (Internal) and `MCP-Connect` (External).",
-      depth: 0
-    }
-  ]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [agentStatus, setAgentStatus] = useState<'idle' | 'planning' | 'executing' | 'verifying'>('idle');
 
@@ -247,13 +241,10 @@ export default function AgentChat({ onNewPayments, onProtocolTrace }: Params) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Only scroll to bottom when a new message is sent or received by user action, not on initial load.
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -414,7 +405,7 @@ export default function AgentChat({ onNewPayments, onProtocolTrace }: Params) {
                           alert('Topology snapshot copied to clipboard for X sharing! 🚀');
                         }}
                         className="btn"
-                        style={{ padding: '6px 10px', fontSize: '0.6rem' }}
+                        style={{ padding: '6px 10px', fontSize: '0.6rem', color: '#111111' }}
                       >
                         <Share2 size={12} /> {language === 'es' ? 'COMPARTIR' : (language === 'hi' ? 'शेयर' : 'SHARE')}
                       </button>

@@ -47,16 +47,16 @@ export default function AgentsPage() {
     <div style={{ padding: '40px 0' }}>
       <div style={{ marginBottom: 40, display: 'flex', justifyContent: 'space-between', alignItems: 'end' }}>
         <div>
-          <h1 className="mono" style={{ fontSize: '2.5rem', fontWeight: 800, marginBottom: 12, color: '#ffffff' }}>
+          <h1 className="mono" style={{ fontSize: '2.5rem', fontWeight: 800, marginBottom: 12, color: '#111111' }}>
             {t.marketplaceTitle}
           </h1>
-          <p style={{ fontSize: '1.1rem', color: '#a1a1aa', maxWidth: 700 }}>
+          <p style={{ fontSize: '1.1rem', color: '#111111', maxWidth: 700 }}>
             {t.marketplaceSubtitle}
           </p>
         </div>
 
         <div style={{ display: 'flex', gap: 12, marginBottom: 8 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#a1a1aa', fontSize: '0.9rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#111111', fontSize: '0.9rem' }}>
             <Filter size={16} /> {t.sortBy}
           </div>
           <select
@@ -101,7 +101,7 @@ export default function AgentsPage() {
             <div className="mono" style={{ fontSize: '2rem', fontWeight: 800, color: stat.color, marginBottom: 8 }}>
               {stat.value}
             </div>
-            <div style={{ fontSize: '0.85rem', color: '#a1a1aa' }}>{stat.label}</div>
+            <div style={{ fontSize: '0.85rem', color: '#111111' }}>{stat.label}</div>
           </div>
         ))}
       </div>
@@ -119,7 +119,7 @@ export default function AgentsPage() {
           <div style={{ color: '#ef4444', marginBottom: 16, fontSize: '1.2rem', fontWeight: 600 }}>
              {t.connectionError || 'Unable to connect to Agent Registry'}
           </div>
-          <p style={{ color: '#a1a1aa', marginBottom: 24 }}>
+          <p style={{ color: '#111111', marginBottom: 24 }}>
             {error}
           </p>
           <button
@@ -127,7 +127,7 @@ export default function AgentsPage() {
             className="btn"
             style={{
               background: 'rgba(255,255,255,0.1)',
-              color: '#fff',
+              color: '#111111',
               border: '1px solid rgba(255,255,255,0.2)'
             }}
           >

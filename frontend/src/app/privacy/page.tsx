@@ -16,7 +16,7 @@ export default function PrivacyPage() {
           <Shield size={32} color="#a855f7" />
         </div>
         <h1 style={{ fontSize: '2.5rem', fontWeight: 800, marginBottom: 16 }}>Privacy Policy</h1>
-        <p style={{ color: '#a1a1aa' }}>Last updated: February 15, 2026</p>
+        <p style={{ color: '#111111' }}>Last updated: February 15, 2026</p>
       </header>
 
       <div className="content">
@@ -60,24 +60,36 @@ export default function PrivacyPage() {
 
       <style jsx>{`
         .container {
-          color: #ffffff;
+          color: #111111;
         }
         .back-link {
           display: flex;
           align-items: center;
           gap: 8px;
-          color: #a1a1aa;
+          color: #111111;
           text-decoration: none;
           font-size: 0.9rem;
           margin-bottom: 40px;
           transition: color 0.2s ease;
         }
         .back-link:hover {
-          color: #ffffff;
+          color: #000000;
         }
         .icon-badge {
           width: 64px;
           height: 64px;
+                  @media (max-width: 480px) {
+                    .container {
+                      padding-left: 16px;
+                      padding-right: 16px;
+                    }
+                  }
+                  @media (max-width: 400px) {
+                    .container {
+                      padding-left: 8px;
+                      padding-right: 8px;
+                    }
+                  }
           background: rgba(168, 85, 247, 0.1);
           border: 1px solid rgba(168, 85, 247, 0.2);
           border-radius: 16px;

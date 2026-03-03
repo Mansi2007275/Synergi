@@ -172,7 +172,7 @@ export default function Footer() {
           margin-bottom: 24px;
           letter-spacing: 0.05em;
           text-transform: uppercase;
-          color: var(--text-primary);
+          color: #111111;
           border-left: 4px solid var(--accent-500);
           padding-left: 12px;
         }
@@ -185,7 +185,7 @@ export default function Footer() {
 
         .link {
           font-size: 0.9rem;
-          color: var(--text-secondary);
+          color: #111111;
           text-decoration: none;
           transition: all 0.1s ease;
           font-weight: 600;
@@ -257,14 +257,14 @@ export default function Footer() {
 
         .stat-card .label {
           font-size: 0.7rem;
-          color: var(--text-secondary);
+          color: #111111;
           letter-spacing: 0.05em;
           font-weight: 700;
         }
 
         .stat-card .value {
           font-size: 0.85rem;
-          color: var(--text-primary);
+          color: #111111;
           font-weight: 700;
         }
 
@@ -299,7 +299,7 @@ export default function Footer() {
 
         .bottom-link {
           font-size: 0.75rem;
-          color: var(--text-secondary);
+          color: #111111;
           text-decoration: none;
           transition: color 0.1s ease;
           font-weight: 700;
@@ -313,7 +313,7 @@ export default function Footer() {
 
         .copyright {
           font-size: 0.75rem;
-          color: var(--text-secondary);
+          color: #111111;
           font-weight: 700;
         }
 
@@ -328,18 +328,25 @@ export default function Footer() {
         @media (max-width: 640px) {
           .footer-grid {
             grid-template-columns: 1fr;
-            padding: 32px 24px;
+            padding: 32px 16px;
           }
 
           .footer-bottom {
             flex-direction: column;
             gap: 20px;
-            padding: 24px;
+            padding: 24px 8px;
             text-align: center;
           }
 
           .bottom-links {
             justify-content: center;
+          }
+        }
+
+        @media (max-width: 400px) {
+          .footer-grid {
+            padding-left: 4px;
+            padding-right: 4px;
           }
         }
       `}</style>

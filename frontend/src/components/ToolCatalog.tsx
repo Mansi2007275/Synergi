@@ -67,11 +67,27 @@ export default function ToolCatalog() {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 20 }}>
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+          gap: 20,
+        }}
+        className="tool-grid-responsive"
+      >
         {tools.map(tool => (
           <AgentCard key={tool.id} tool={tool} />
         ))}
       </div>
+      <style jsx>{`
+        @media (max-width: 480px) {
+          .tool-grid-responsive {
+            grid-template-columns: 1fr !important;
+            padding-left: 8px;
+            padding-right: 8px;
+          }
+        }
+      `}</style>
     </div>
   );
 }
@@ -121,14 +137,14 @@ function AgentCard({ tool }: { tool: Tool }) {
             {/* eslint-disable-next-line */}
             <Icon size={24} color={color} strokeWidth={2.5} />
           </div>
-          <div>
-             <h4 style={{ fontSize: '1rem', fontWeight: 800, margin: 0, textTransform: 'uppercase', letterSpacing: '-0.02em', color: 'var(--text-primary)' }}>{tool.name}</h4>
-             <span className="mono" style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: 600 }}>{tool.category}</span>
-          </div>
+           <div>
+             <h4 style={{ fontSize: '1rem', fontWeight: 800, margin: 0, textTransform: 'uppercase', letterSpacing: '-0.02em', color: '#111111' }}>{tool.name}</h4>
+             <span className="mono" style={{ fontSize: '0.7rem', color: '#111111', fontWeight: 600 }}>{tool.category}</span>
+           </div>
         </div>
       </div>
 
-      <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.5, marginBottom: 20, flex: 1, fontWeight: 500 }}>
+      <p style={{ fontSize: '0.85rem', color: '#111111', lineHeight: 1.5, marginBottom: 20, flex: 1, fontWeight: 500 }}>
         {tool.description}
       </p>
 
@@ -168,9 +184,9 @@ function AgentCard({ tool }: { tool: Tool }) {
           )}
         </div>
 
-        <div className="mono" style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-           {Number(tool.price) > 0 ? `${tool.price} ${tool.token}` : 'FREE'}
-        </div>
+          <div className="mono" style={{ fontSize: '0.9rem', fontWeight: 800, color: '#111111' }}>
+            {Number(tool.price) > 0 ? `${tool.price} ${tool.token}` : 'FREE'}
+          </div>
       </div>
     </div>
   );

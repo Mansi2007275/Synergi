@@ -16,7 +16,7 @@ export default function LicensePage() {
           <Gavel size={32} color="#FF854B" />
         </div>
         <h1 style={{ fontSize: '2.5rem', fontWeight: 800, marginBottom: 16 }}>License</h1>
-        <p style={{ color: '#a1a1aa' }}>Effective Date: February 15, 2026</p>
+        <p style={{ color: '#111111' }}>Effective Date: February 15, 2026</p>
       </header>
 
       <div className="content">
@@ -66,20 +66,20 @@ SOFTWARE.`}
 
       <style jsx>{`
         .container {
-          color: #ffffff;
+          color: #111111;
         }
         .back-link {
           display: flex;
           align-items: center;
           gap: 8px;
-          color: #a1a1aa;
+          color: #111111;
           text-decoration: none;
           font-size: 0.9rem;
           margin-bottom: 40px;
           transition: color 0.2s ease;
         }
         .back-link:hover {
-          color: #ffffff;
+          color: #000000;
         }
         .icon-badge {
           width: 64px;
@@ -88,6 +88,18 @@ SOFTWARE.`}
           border: 1px solid rgba(16, 185, 129, 0.2);
           border-radius: 16px;
           display: flex;
+                  @media (max-width: 480px) {
+                    .container {
+                      padding-left: 16px;
+                      padding-right: 16px;
+                    }
+                  }
+                  @media (max-width: 400px) {
+                    .container {
+                      padding-left: 8px;
+                      padding-right: 8px;
+                    }
+                  }
           align-items: center;
           justify-content: center;
           margin: 0 auto 24px;
