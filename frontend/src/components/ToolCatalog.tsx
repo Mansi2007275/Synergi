@@ -22,7 +22,7 @@ export default function ToolCatalog() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://synergi.onrender.com'}/api/tools`)
+    fetch(`${(process.env.NEXT_PUBLIC_API_URL || 'https://synergi.onrender.com').replace(/\/$/, '')}/api/tools`)
       .then(res => res.json())
       .then(data => {
         const formatted = data.map((t: any) => ({

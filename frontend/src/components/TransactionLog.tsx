@@ -4,7 +4,7 @@
 import React, { useEffect, useState } from 'react';
 import { useI18n } from '@/lib/LanguageContext';
 
-const API = process.env.NEXT_PUBLIC_API_URL || 'https://synergi.onrender.com';
+const API = (process.env.NEXT_PUBLIC_API_URL || 'https://synergi.onrender.com').replace(/\/$/, '');
 
 interface Payment {
   id: string;

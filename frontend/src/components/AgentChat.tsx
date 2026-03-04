@@ -129,7 +129,7 @@ export default function AgentChat({ onNewPayments, onProtocolTrace }: Params) {
         return;
       }
 
-      const sseUrl = `${process.env.NEXT_PUBLIC_API_URL || 'https://synergi.onrender.com'}/api/agent/events?clientId=${clientId.current}`;
+      const sseUrl = `${(process.env.NEXT_PUBLIC_API_URL || 'https://synergi.onrender.com').replace(/\/$/, '')}/api/agent/events?clientId=${clientId.current}`;
       sse = new EventSource(sseUrl);
       eventSourceRef.current = sse;
 
@@ -257,7 +257,7 @@ export default function AgentChat({ onNewPayments, onProtocolTrace }: Params) {
     setAgentStatus('planning');
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://synergi.onrender.com'}/api/agent/query`, {
+      const response = await fetch(`${(process.env.NEXT_PUBLIC_API_URL || 'https://synergi.onrender.com').replace(/\/$/, '')}/api/agent/query`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query: userMsg, clientId: clientId.current })
