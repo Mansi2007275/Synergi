@@ -64,8 +64,8 @@ export default function AgentsPage() {
             onChange={(e) => setSortBy(e.target.value as any)}
             className="glass-panel"
             style={{
-              background: 'rgba(0,0,0,0.2)',
-              color: 'white',
+              background: 'rgba(255,255,255,0.8)',
+              color: '#111111',
               border: '1px solid var(--border-subtle)',
               padding: '6px 12px',
               borderRadius: 'var(--radius-sm)',
