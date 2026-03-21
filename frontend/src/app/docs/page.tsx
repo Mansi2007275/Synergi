@@ -292,7 +292,7 @@ await payment.waitForConfirmation(txId);
         </p>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: 32 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: 28 }}>
         {/* Sidebar */}
         <div style={{ position: 'sticky', top: 120, height: 'fit-content' }}>
           <div className="glass-panel" style={{ padding: 16 }}>
@@ -355,29 +355,46 @@ await payment.waitForConfirmation(txId);
         </div>
 
         {/* Content */}
-        <div className="glass-panel" style={{ padding: 40 }}>
+        <div className="glass-panel" style={{
+          padding: '32px 36px',
+          background: 'linear-gradient(120deg, #f8fafc 80%, #e6eaff 100%)',
+          border: '2px solid var(--accent-light)',
+          boxShadow: '0 4px 32px 0 rgba(80,120,255,0.07)',
+          borderRadius: '18px',
+          minHeight: 480,
+          maxWidth: 820,
+          margin: '0 auto',
+          transition: 'box-shadow 0.2s',
+        }}>
           <h2 className="mono" style={{
-            fontSize: '2rem',
-            fontWeight: 800,
-            marginBottom: 24,
-            color: 'var(--text-primary)',
+            fontSize: '2.1rem',
+            fontWeight: 900,
+            marginBottom: 18,
+            color: 'var(--accent-primary)',
+            letterSpacing: '-0.01em',
+            textShadow: '0 2px 8px #e6eaff',
           }}>
             {currentContent.title}
           </h2>
           <div style={{
-            fontSize: '1rem',
-            lineHeight: 1.8,
-            color: 'var(--text-secondary)',
+            fontSize: '1.04rem',
+            lineHeight: 1.55,
+            color: 'var(--text-primary)',
+            letterSpacing: '0.01em',
+            fontWeight: 500,
+            wordSpacing: '0.01em',
+            marginTop: 2,
           }}>
             {currentContent.content.split('\n').map((line: string, i: number) => {
               if (line.startsWith('## ')) {
                 return (
                   <h3 key={i} className="mono" style={{
-                    fontSize: '1.5rem',
+                    fontSize: '1.32rem',
                     fontWeight: 700,
-                    marginTop: 32,
-                    marginBottom: 16,
-                    color: 'var(--text-primary)',
+                    marginTop: 26,
+                    marginBottom: 10,
+                    color: 'var(--accent-primary)',
+                    letterSpacing: '-0.01em',
                   }}>
                     {line.replace('## ', '')}
                   </h3>
@@ -386,11 +403,11 @@ await payment.waitForConfirmation(txId);
               if (line.startsWith('### ')) {
                 return (
                   <h4 key={i} className="mono" style={{
-                    fontSize: '1.2rem',
+                    fontSize: '1.08rem',
                     fontWeight: 600,
-                    marginTop: 24,
-                    marginBottom: 12,
-                    color: 'var(--accent-primary)',
+                    marginTop: 16,
+                    marginBottom: 8,
+                    color: 'var(--text-secondary)',
                   }}>
                     {line.replace('### ', '')}
                   </h4>
@@ -437,7 +454,7 @@ await payment.waitForConfirmation(txId);
                 );
               }
               if (line.trim()) {
-                return <p key={i} style={{ marginBottom: 12 }}>{line}</p>;
+                return <p key={i} style={{ marginBottom: 7 }}>{line}</p>;
               }
               return <br key={i} />;
             })}
