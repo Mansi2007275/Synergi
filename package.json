@@ -9,10 +9,10 @@
     "frontend"
   ],
   "scripts": {
-    "dev:backend": "cd backend && npm run dev",
-    "dev:frontend": "cd frontend && npm run dev",
-    "dev:agent": "cd agent && npm start",
-    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:backend": "node init && cd backend && npm run dev",
+    "dev:frontend": "node init && cd frontend && npm run dev",
+    "dev:agent": "node init && cd agent && npm start",
+    "dev": "node init && concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
     "test:client": "cd agent && npm run test:client",
     "install:all": "cd backend && npm install && cd ../agent && npm install && cd ../frontend && npm install"
   },

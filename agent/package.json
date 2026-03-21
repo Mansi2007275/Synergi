@@ -4,12 +4,12 @@
   "description": "Autonomous AI agent that discovers and pays for x402-protected API tools",
   "type": "module",
   "scripts": {
-    "start": "tsx src/agent.ts",
-    "dev": "tsx watch src/agent.ts",
+    "start": "node init && tsx src/agent.ts",
+    "dev": "node init && tsx watch src/agent.ts",
     "test:client": "tsx src/test-client.ts",
     "generate-wallet": "tsx src/generate-wallet.ts",
-    "build": "tsc",
-    "start:prod": "node dist/agent.js"
+    "build": "node init && tsc",
+    "start:prod": "node init && node dist/agent.js"
   },
   "license": "MIT",
   "dependencies": {
